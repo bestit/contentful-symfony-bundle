@@ -1,0 +1,33 @@
+services:
+    best_it_contentful.delivery.cache.reset_service:
+        class: BestIt\ContentfulBundle\Service\CacheResetService
+        arguments: ['@best_it_contentful.cache.pool.delivery', '%best_it_contentful.collection_consumer%']
+
+    best_it_contentful.delivery.client:
+        class: BestIt\ContentfulBundle\Service\Delivery\ClientDecorator
+        arguments:
+            - '@contentful.delivery'
+            - '@best_it_contentful.cache.pool.delivery'
+            - '@event_dispatcher'
+            - '@logger'
+            - '@best_it_contentful.delivery.response_parser.default'
+
+    best_it_contentful.delivery.response_parser.default:
+        class: BestIt\ContentfulBundle\Delivery\SimpleResponseParser
+
+    best_it_contentful.markdown.parser:
+        class: BestIt\ContentfulBundle\Service\MarkdownParser
+
+    best_it_contentful.contentful.twig_extension:
+        class:     BestIt\ContentfulBundle\Twig\ContentfulExtension
+        arguments: ['@best_it_contentful.delivery.client']
+        public:    false
+        tags:
+            - { name: twig.extension }
+
+    best_it_contentful.markdown.twig_extension:
+        class:     BestIt\ContentfulBundle\Twig\MarkdownExtension
+        arguments: ['@best_it_contentful.markdown.parser']
+        public:    false
+        tags:
+            - { name: twig.extension }

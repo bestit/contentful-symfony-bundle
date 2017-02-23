@@ -1,0 +1,237 @@
+<?php
+
+namespace BestIt\ContentfulBundle\DependencyInjection;
+
+use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
+use Symfony\Component\Config\Definition\Builder\TreeBuilder;
+use Symfony\Component\Config\Definition\ConfigurationInterface;
+
+/**
+ * Configuration class for this bundle.
+ * @author blange <lange@bestit-online.de>
+ * @package BestIt\ContentfulBundle
+ * @subpackage DependencyInjection
+ * @version $id$
+ */
+class Configuration implements ConfigurationInterface
+{
+    /**
+     * Adds the caching types to the contentful config.
+     * @return ArrayNodeDefinition
+     */
+    protected function getCachingConfig(): ArrayNodeDefinition
+    {
+        $node = (new TreeBuilder())->root('caching');
+
+        $node
+            ->children()
+                ->scalarNode('content')
+                    ->info('Please provider your service id for caching contentful contents.')
+                    ->isRequired()
+                    ->cannotBeEmpty()
+                ->end()
+                ->scalarNode('routing')
+                    ->info('Please provider your service id for caching contentful routings.')
+                    ->isRequired()
+                    ->cannotBeEmpty()
+                ->end()
+                ->arrayNode('collection_consumer')
+                    ->info('Which cache ids should be resetted everytime?')
+                    ->prototype('scalar')
+                ->end()
+            ->end();
+
+        $node->end();
+
+        return $node;
+    }
+
+    /**
+     * Parses the config.
+     * @return TreeBuilder
+     */
+    public function getConfigTreeBuilder()
+    {
+        $builder = new TreeBuilder();
+
+        $builder->root('best_it_contentful')
+            ->children()
+                ->scalarNode('controller_field')
+                    ->info('This field indicates which controller should be used for the routing.')
+                    ->defaultValue('controller')
+                    ->cannotBeEmpty()
+                ->end()
+                ->scalarNode('routing_field')
+                    ->info('Which field is used to mark the url of the contentful entry?')
+                    ->defaultValue('slug')
+                    ->cannotBeEmpty()
+                ->end()
+                ->arrayNode('routable_types')
+                    ->info('This content types have a routable page in the project.')
+                    ->prototype('scalar')
+                    ->end()
+                ->end()
+                ->append($this->getCachingConfig())
+                ->append($this->getContentTypes())
+            ->end();
+
+        return $builder;
+    }
+
+    /**
+     * Adds the content types to the contentful config.
+     * @return ArrayNodeDefinition
+     * @todo https://www.contentful.com/developers/docs/references/content-management-api/#/reference/content-types
+     * @todo https://www.contentful.com/developers/docs/references/content-management-api/#/reference/editor-interface
+     * @todo Not Every Field Type, Content Type, Asset, Editor Interface etc. is tested.
+     */
+    protected function getContentTypes(): ArrayNodeDefinition
+    {
+        $node = (new TreeBuilder())->root('content_types');
+
+        $node
+            ->info(
+                'Add the content types mainly documented under: ' .
+                '<https://www.contentful.com/developers/docs/references/content-management-api/#/reference/' .
+                'content-types>'
+            )
+            ->normalizeKeys(true)
+            ->requiresAtLeastOneElement()
+            ->useAttributeAsKey('id')
+            ->prototype('array')
+                ->children()
+                    ->scalarNode('description')->isRequired()->end()
+                    ->scalarNode('displayField')->isRequired()->end()
+                    ->scalarNode('name')->isRequired()->end()
+                    ->scalarNode('controller')
+                        ->info(
+                            'Give the logical controller name for the routing, like document under <' .
+                            'http://symfony.com/doc/current/routing.html#controller-string-syntax>'
+                        )
+                    ->end()
+                    ->arrayNode('fields')
+                        ->isRequired()
+                        ->requiresAtLeastOneElement()
+                        ->normalizeKeys(true)
+                        ->useAttributeAsKey('id')
+                        ->prototype('array')
+                            ->children()
+                                ->enumNode('linkType')->values(['Asset', 'Entry'])->end()
+                                ->scalarNode('name')->isRequired()->end()
+                                ->booleanNode('omitted')->defaultValue(false)->end()
+                                ->booleanNode('required')->defaultValue(false)->end()
+                                ->arrayNode('items')
+                                    ->children()
+                                        ->enumNode('type')->values(['Link', 'Symbol'])->end()
+                                        ->enumNode('linkType')->values(['Asset', 'Entry'])->end()
+                                        ->arrayNode('validations')
+                                            ->prototype('array')
+                                                ->children()
+                                                    ->arrayNode('linkContentType')
+                                                        ->prototype('scalar')->end()
+                                                    ->end()
+                                                ->end()
+                                            ->end()
+                                        ->end()
+                                    ->end()
+                                ->end()
+                                ->enumNode('type')
+                                    ->isRequired()
+                                    ->values([
+                                        'Array',
+                                        'Boolean',
+                                        'Date',
+                                        'Integer',
+                                        'Location',
+                                        'Link',
+                                        'Number',
+                                        'Object',
+                                        'Symbol',
+                                        'Text'
+                                    ])
+                                ->end()
+                                // region control
+                                ->arrayNode('control')
+                                    ->info(
+                                        'Shortcut to handle the editor interface for this field, documentation ' .
+                                        'can be found here: <https://www.contentful.com/developers/docs/' .
+                                        'references/content-management-api/#/reference/editor-interface>'
+                                    )
+                                    ->isRequired()
+                                    ->children()
+                                        ->enumNode('id')
+                                            ->isRequired()
+                                            ->values([
+                                                'assetLinkEditor',
+                                                'assetLinksEditor',
+                                                'assetGalleryEditor',
+                                                'boolean',
+                                                'datePicker',
+                                                'entryLinkEditor',
+                                                'entryLinksEditor',
+                                                'entryCardEditor',
+                                                'entryCardsEditor',
+                                                'numberEditor',
+                                                'rating',
+                                                'locationEditor',
+                                                'objectEditor',
+                                                'urlEditor',
+                                                'slugEditor',
+                                                'ooyalaEditor',
+                                                'kalturaEditor',
+                                                'kalturaMultiVideoEditor',
+                                                'listInput',
+                                                'checkbox',
+                                                'tagEditor',
+                                                'multipleLine',
+                                                'markdown',
+                                                'singleLine',
+                                                'dropdown',
+                                                'radio'
+                                            ])
+                                        ->end()
+                                        ->arrayNode('settings')
+                                            ->isRequired()
+                                            ->children()
+                                                ->integerNode('ampm')->end()
+                                                ->scalarNode('falseLabel')->end()
+                                                ->scalarNode('format')->end()
+                                                ->scalarNode('helpText')->isRequired()->end()
+                                                ->integerNode('stars')->end()
+                                                ->scalarNode('trueLabel')->end()
+                                            ->end()
+                                        ->end()
+                                    ->end()
+                                ->end()
+                                // endregion
+                                // region validations
+                                ->arrayNode('validations')
+                                    ->prototype('array')
+                                        ->children()
+                                            ->arrayNode('size')
+                                                ->children()
+                                                    ->integerNode('max')->end()
+                                                    ->integerNode('min')->end()
+                                                ->end()
+                                            ->end()
+                                            ->arrayNode('in')
+                                                ->prototype('scalar')->end()
+                                            ->end()
+                                            ->arrayNode('linkContentType')
+                                                ->prototype('scalar')->end()
+                                            ->end()
+                                            ->booleanNode('unique')->end()
+                                        ->end()
+                                    ->end()
+                                ->end()
+                                // endregion
+                            ->end()
+                         ->end()
+                    ->end()
+                ->end()
+            ->end()
+        ->end();
+
+        return $node;
+    }
+}

@@ -1,0 +1,29 @@
+{
+    "name": "bestit/contentful-bundle",
+    "description": "A simple contentful bundle providing you with an easy setup, easy contentmodels and a simple api providing the contentful contents as an array.",
+    "minimum-stability": "beta",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Bjoern Lange",
+            "email": "lange@bestit-online.de"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "BestIt\\ContentfulBundle\\": "src/"
+        }
+    },
+    "require": {
+        "php": "^7.0",
+        "symfony/symfony": "^3.1",
+        "doctrine/doctrine-cache-bundle": "^1.2",
+        "symfony/monolog-bundle": "^2.8",
+        "contentful/contentful-bundle": "dev-master",
+        "erusev/parsedown": "^1.6"
+    },
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^2.7",
+        "phpunit/phpunit": "^5.5"
+    }
+}
