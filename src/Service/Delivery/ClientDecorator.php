@@ -5,7 +5,9 @@ namespace BestIt\ContentfulBundle\Service\Delivery;
 use BestIt\ContentfulBundle\ClientEvents;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use Contentful\Delivery\Client;
+use Contentful\Delivery\DynamicEntry;
 use Contentful\Delivery\Query;
+use Contentful\ResourceArray;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerAwareInterface;
@@ -161,12 +163,18 @@ class ClientDecorator implements LoggerAwareInterface
                     ['cacheId' => $cacheId, 'parser' => get_class($parser)]
                 );
 
+                /** @var ResourceArray $entries */
                 $entries = $this->client->getEntries($query);
+                $entryIds = [];
 
                 $dispatcher->dispatch(ClientEvents::LOAD_CONTENTFUL_ENTRIES, new GenericEvent($entries));
 
                 foreach ($entries as $entry) {
                     $dispatcher->dispatch(ClientEvents::LOAD_CONTENTFUL_ENTRY, new GenericEvent($entry));
+
+                    if ($entry instanceof DynamicEntry) {
+                        $entryIds[] = $entry->getId();
+                    }
                 }
 
                 $entries = $parser->toArray($entries);
@@ -184,6 +192,10 @@ class ClientDecorator implements LoggerAwareInterface
         }
 
         if ($cacheId && !$cacheHit && $entries !== null) {
+            if ($entryIds && method_exists($cacheItem, 'tag')) {
+                $cacheItem->tag($entryIds);
+            }
+
             $cache->save($cacheItem->set($entries));
         }
 
@@ -227,6 +239,10 @@ class ClientDecorator implements LoggerAwareInterface
                     sprintf('Found contentful element with ID %s.', $id),
                     ['id' => $id, 'entry' => $entry, 'parser' => get_class($parser)]
                 );
+
+                if (method_exists($cacheItem, 'tag')) {
+                    $cacheItem->tag($id);
+                }
 
                 $cache->save($cacheItem->set($entry));
             } catch (RequestException $exception) {

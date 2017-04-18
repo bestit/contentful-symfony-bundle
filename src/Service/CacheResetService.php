@@ -4,6 +4,7 @@ namespace BestIt\ContentfulBundle\Service;
 
 use Psr\Cache\CacheItemPoolInterface;
 use stdClass;
+use Symfony\Component\Cache\Adapter\TagAwareAdapterInterface;
 
 /**
  * Service to reset the cache for contentful.
@@ -74,6 +75,10 @@ class CacheResetService
 
             if ($deleteIds = $this->getCacheResetIds()) {
                 $pool->deleteItems($deleteIds);
+            }
+
+            if ($pool instanceof TagAwareAdapterInterface) {
+                $pool->invalidateTags([$entryId]);
             }
 
             $return = true;
