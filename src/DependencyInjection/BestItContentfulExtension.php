@@ -29,10 +29,14 @@ class BestItContentfulExtension extends Extension
 
         $config = $this->processConfiguration(new Configuration(), $configs);
 
-        $container->setParameter('best_it_contentful.collection_consumer', $config['collection_consumer'] ?? []);
         $container->setParameter('best_it_contentful.content_types', $config['content_types'] ?? []);
         $container->setParameter('best_it_contentful.controller_field', $config['controller_field']);
         $container->setParameter('best_it_contentful.routing_field', $config['routing_field']);
+
+        $container->setParameter(
+            'best_it_contentful.collection_consumer',
+            $config['caching']['collection_consumer'] ?? []
+        );
 
         $container->setAlias(
             'best_it_contentful.cache.pool.delivery',
