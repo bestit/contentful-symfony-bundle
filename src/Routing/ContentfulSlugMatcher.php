@@ -270,7 +270,6 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
      */
     public function matchRequest(Request $request)
     {
-        $entry = null;
         $requestUri = $request->getRequestUri();
 
         if ($requestUri !== '/') {

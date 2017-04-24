@@ -98,7 +98,7 @@ class ClientDecoratorTest extends WebTestCase
             ->with($id = uniqid())
             ->willReturn($return = uniqid());
 
-        $this->assertSame($return, $this->fixture->getAsset($id));
+        static::assertSame($return, $this->fixture->getAsset($id));
     }
 
     /**
@@ -127,8 +127,8 @@ class ClientDecoratorTest extends WebTestCase
             ->method('dispatch')
             ->with(ClientEvents::LOAD_CONTENTFUL_ENTRY, $this->isInstanceOf(GenericEvent::class));
 
-        $this->assertSame($result, $this->fixture->getEntry($id), 'The first response was not correct.');
-        $this->assertSame($result, $this->fixture->getEntry($id), 'The second response should be cached and the same.');
+        static::assertSame($result, $this->fixture->getEntry($id), 'The first response was not correct.');
+        static::assertSame($result, $this->fixture->getEntry($id), 'The second response should be cached and the same.');
     }
 
     /**
@@ -153,7 +153,7 @@ class ClientDecoratorTest extends WebTestCase
             ->willReturn([$mockEntry]);
 
         $callback = function ($query) {
-            $this->assertInstanceOf(Query::class, $query);
+            static::assertInstanceOf(Query::class, $query);
         };
 
         $this->eventDispatcher
@@ -166,13 +166,13 @@ class ClientDecoratorTest extends WebTestCase
             ->method('dispatch')
             ->with(ClientEvents::LOAD_CONTENTFUL_ENTRY, $this->isInstanceOf(GenericEvent::class));
 
-        $this->assertSame(
+        static::assertSame(
             $result,
             $this->fixture->getEntries($callback, $cacheId = uniqid(), $parser),
             'The first response was not correct.'
         );
 
-        $this->assertSame(
+        static::assertSame(
             $result,
             $this->fixture->getEntries($callback, $cacheId),
             'The second response should be cached and the same.'
@@ -200,7 +200,7 @@ class ClientDecoratorTest extends WebTestCase
             ->willReturn([$mockEntry]);
 
         $callback = function ($query) {
-            $this->assertInstanceOf(Query::class, $query);
+            static::assertInstanceOf(Query::class, $query);
         };
 
         $this->eventDispatcher
@@ -213,13 +213,13 @@ class ClientDecoratorTest extends WebTestCase
             ->method('dispatch')
             ->with(ClientEvents::LOAD_CONTENTFUL_ENTRY, $this->isInstanceOf(GenericEvent::class));
 
-        $this->assertSame(
+        static::assertSame(
             $result,
             $this->fixture->getEntries($callback),
             'The first response was not correct.'
         );
 
-        $this->assertSame(
+        static::assertSame(
             $result,
             $this->fixture->getEntries($callback),
             'The second response should be cached and the same.'
@@ -267,7 +267,7 @@ class ClientDecoratorTest extends WebTestCase
                 ]
             ));
 
-        $this->assertSame(
+        static::assertSame(
             [],
             $this->fixture->simplifyResponse($deep)
         );

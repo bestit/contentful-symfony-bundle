@@ -4,6 +4,7 @@ namespace BestIt\ContentfulBundle\Service\Delivery;
 
 use BestIt\ContentfulBundle\ClientEvents;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
+use Contentful\Delivery\Asset;
 use Contentful\Delivery\Client;
 use Contentful\Delivery\DynamicEntry;
 use Contentful\Delivery\Query;
@@ -19,6 +20,7 @@ use Symfony\Component\EventDispatcher\GenericEvent;
 /**
  * Extends the logics for the contentful delivery.
  * @author lange <lange@bestit-online.de>
+ * @method Asset getAsset(string $id, string|null $locale = null)
  * @package BestIt\ContentfulBundle
  * @subpackage Service
  * @version $id$
