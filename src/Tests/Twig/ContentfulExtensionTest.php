@@ -115,7 +115,7 @@ class ContentfulExtensionTest extends WebTestCase
                         /** @var Query $query */
                         $query = $callback(new Query());
 
-                        static::assertSame($contentType, $query->getContentType());
+                        static::assertSame($contentType, $query->getQueryData()['content_type']);
 
                         return true;
                     })

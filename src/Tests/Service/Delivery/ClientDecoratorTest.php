@@ -227,18 +227,6 @@ class ClientDecoratorTest extends WebTestCase
     }
 
     /**
-     * Checks if the service is declared correctly.
-     * @return void
-     */
-    public function testServiceDeclarationSuccess()
-    {
-        $this->assertInstanceOf(
-            ClientDecorator::class,
-            static::createClient()->getContainer()->get('best_it_contentful.delivery.client')
-        );
-    }
-
-    /**
      * Checks the simplification of the response.
      * @return void
      */

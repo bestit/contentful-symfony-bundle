@@ -10,8 +10,16 @@
         }
     ],
     "autoload": {
+        "exclude-from-classmap": [
+            "src/Tests/"
+        ],
         "psr-4": {
             "BestIt\\ContentfulBundle\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "BestIt\\ContentfulBundle\\Tests\\": "src/Tests/"
         }
     },
     "require": {
@@ -24,6 +32,6 @@
     },
     "require-dev": {
         "squizlabs/php_codesniffer": "^2.7",
-        "phpunit/phpunit": "^5.5"
+        "matthiasnoback/symfony-dependency-injection-test": "^1"
     }
 }

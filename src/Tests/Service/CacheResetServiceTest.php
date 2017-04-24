@@ -3,9 +3,9 @@
 namespace BestIt\ContentfulBundle\Tests\Service;
 
 use BestIt\ContentfulBundle\Service\CacheResetService;
+use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
 use stdClass;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
  * Tests the service for cache resetting.
@@ -15,7 +15,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  * @subpackage Service
  * @version $id$
  */
-class CacheResetServiceTest extends WebTestCase
+class CacheResetServiceTest extends TestCase
 {
     /**
      * Checks if the entry cache is reset correctly.
@@ -62,18 +62,5 @@ class CacheResetServiceTest extends WebTestCase
             ->method('hasItem');
 
         $this->assertFalse($fixture->resetEntryCache(new stdClass()));
-    }
-
-    /**
-     * Checks if the service is registered correctly.
-     * @return void
-     */
-    public function testServiceDeclarationSuccess()
-    {
-        $this->assertInstanceOf(
-            CacheResetService::class,
-            static::createClient()->getContainer()->get('best_it_contentful.delivery.cache.reset_service'),
-            'The service was not registered correctly.'
-        );
     }
 }
