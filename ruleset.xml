@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<ruleset name="bestit/contentful-bundle">
+    <rule ref="PSR2" />
+</ruleset>
