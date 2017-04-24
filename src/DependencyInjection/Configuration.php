@@ -24,6 +24,7 @@ class Configuration implements ConfigurationInterface
         $node = (new TreeBuilder())->root('caching');
 
         $node
+            ->isRequired()
             ->children()
                 ->scalarNode('content')
                     ->info('Please provider your service id for caching contentful contents.')

@@ -10,3 +10,4 @@ crashlytics-build.properties
 fabric.properties
 /composer.phar
 /vendor/
+/composer.lock

@@ -192,7 +192,7 @@ class ClientDecorator implements LoggerAwareInterface
         }
 
         if ($cacheId && !$cacheHit && $entries !== null) {
-            if ($entryIds && method_exists($cacheItem, 'tag')) {
+            if (array_filter($entryIds) && method_exists($cacheItem, 'tag')) {
                 $cacheItem->tag($entryIds);
             }
 
