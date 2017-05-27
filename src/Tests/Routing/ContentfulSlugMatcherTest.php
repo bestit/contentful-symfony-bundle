@@ -6,7 +6,7 @@ use BestIt\ContentfulBundle\Routing\ContentfulSlugMatcher;
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
 use Contentful\Delivery\ContentType;
 use Contentful\Delivery\Query;
-use GuzzleHttp\Exception\ClientException;
+use Contentful\Exception\NotFoundException;
 use PHPUnit\Framework\TestCase;
 use PHPUnit_Framework_MockObject_MockObject;
 use Psr\Cache\CacheItemPoolInterface;
@@ -69,7 +69,7 @@ class ContentfulSlugMatcherTest extends TestCase
      * Checks if the client exception is skipped and the rest of the entries are registered normally.
      * @return void
      */
-    public function testGetRouteCollectionSkipOnClientException()
+    public function testGetRouteCollectionSkipOnNotFoundException()
     {
         $this->fixture->setRoutableTypes([$type1 = uniqid(), $type2 = uniqid()]);
 
@@ -103,7 +103,7 @@ class ContentfulSlugMatcherTest extends TestCase
 
                 return true;
             }))
-            ->willThrowException($this->createMock(ClientException::class));
+            ->willThrowException($this->createMock(NotFoundException::class));
 
         $collection = $this->fixture->getRouteCollection();
 

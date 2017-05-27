@@ -4,8 +4,8 @@ namespace BestIt\ContentfulBundle\Routing;
 
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
 use Contentful\Delivery\Query;
+use Contentful\Exception\NotFoundException;
 use Exception;
-use GuzzleHttp\Exception\ClientException;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
@@ -256,7 +256,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
                 array_walk($entries, function ($entry) {
                     $this->collection->add($this->getRouteNameForEntry($entry), new Route($entry[$this->slugField]));
                 });
-            } catch (ClientException $clientException) {
+            } catch (NotFoundException $clientException) {
                 // Do nothing at the moment with an error by the contentful sdk
             } catch (Exception $exception) {
                 throw $exception;
