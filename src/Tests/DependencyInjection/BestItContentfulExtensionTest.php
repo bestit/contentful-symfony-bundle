@@ -2,20 +2,24 @@
 
 namespace BestIt\ContentfulBundle\Tests\DependencyInjection;
 
+use BestIt\ContentfulBundle\Delivery\SimpleResponseParser;
 use BestIt\ContentfulBundle\DependencyInjection\BestItContentfulExtension;
+use BestIt\ContentfulBundle\Service\CacheResetService;
+use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
+use BestIt\ContentfulBundle\Service\MarkdownParser;
+use BestIt\ContentfulBundle\Twig\ContentfulExtension;
+use BestIt\ContentfulBundle\Twig\MarkdownExtension;
 use Matthias\SymfonyDependencyInjectionTest\PhpUnit\AbstractExtensionTestCase;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 
 /**
  * Class BestItContentfulExtensionTest
  * @author blange <lange@bestit-online.de>
- * @category Tests
- * @package BestIt\ContentfulBundle
- * @subpackage DependencyInjection
- * @version $id$
+ * @package BestIt\ContentfulBundle\Tests\DependencyInjection
  */
 class BestItContentfulExtensionTest extends AbstractExtensionTestCase
 {
+
     /**
      * Returns the container extensions to test.
      * @return BestItContentfulExtension[]
@@ -23,6 +27,23 @@ class BestItContentfulExtensionTest extends AbstractExtensionTestCase
     protected function getContainerExtensions(): array
     {
         return [new BestItContentfulExtension()];
+    }
+
+    /**
+     * Returns assertions for checking declared services.
+     * @return array
+     */
+    public function getDeclaredServices(): array
+    {
+        return [
+            // Service id, optional class name, tag
+            ['best_it_contentful.markdown.twig_extension', MarkdownExtension::class, 'twig.extension'],
+            ['best_it_contentful.contentful.twig_extension', ContentfulExtension::class, 'twig.extension'],
+            ['best_it_contentful.delivery.cache.reset_service', CacheResetService::class],
+            ['best_it_contentful.delivery.client', ClientDecorator::class],
+            ['best_it_contentful.markdown.parser', MarkdownParser::class],
+            ['best_it_contentful.delivery.response_parser.default', SimpleResponseParser::class]
+        ];
     }
 
     /**
@@ -43,6 +64,7 @@ class BestItContentfulExtensionTest extends AbstractExtensionTestCase
 
     /**
      * Sets up the test.
+     * @return void
      */
     protected function setUp()
     {
@@ -52,29 +74,19 @@ class BestItContentfulExtensionTest extends AbstractExtensionTestCase
     }
 
     /**
-     * Checks if the service is registered correctly.
+     * Checks if a declared service exists.
+     * @dataProvider getDeclaredServices
+     * @param string $serviceId
+     * @param string $serviceClass
+     * @param string $tag Should there be a tag.
      * @return void
      */
-    public function testServiceDeclarationCacheResetService()
+    public function testDeclaredServices(string $serviceId, string $serviceClass = '', string $tag = '')
     {
-        static::assertContainerBuilderHasService('best_it_contentful.delivery.cache.reset_service');
-    }
+        $this->assertContainerBuilderHasService($serviceId, $serviceClass ?: null);
 
-    /**
-     * Checks if the service is declared correctly.
-     * @return void
-     */
-    public function testServiceDeclarationClientDecorator()
-    {
-        static::assertContainerBuilderHasService('best_it_contentful.delivery.client');
-    }
-
-    /**
-     * Checks if the service is registered correctly.
-     * @return void
-     */
-    public function testServiceDeclarationMarkdownParser()
-    {
-        static::assertContainerBuilderHasService('best_it_contentful.markdown.parser');
+        if ($tag) {
+            $this->assertContainerBuilderHasServiceDefinitionWithTag($serviceId, $tag);
+        }
     }
 }
