@@ -11,8 +11,8 @@ use Contentful\Delivery\ContentTypeField;
 use Contentful\Delivery\DynamicEntry;
 use Contentful\Delivery\Query;
 use Doctrine\Common\Cache\ArrayCache;
+use PHPUnit\Framework\TestCase;
 use PHPUnit_Framework_MockObject_MockObject;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Cache\Adapter\DoctrineAdapter;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
@@ -25,31 +25,31 @@ use Symfony\Component\EventDispatcher\GenericEvent;
  * @subpackage Service\Delivery
  * @version $id$
  */
-class ClientDecoratorTest extends WebTestCase
+class ClientDecoratorTest extends TestCase
 {
     /**
      * The mocked client.
-     * @var Client|PHPUnit_Framework_MockObject_MockObject
+     * @var Client|PHPUnit_Framework_MockObject_MockObject|null
      */
-    private $client = null;
+    private $client;
 
     /**
      * The mocked event dispatcher.
-     * @var EventDispatcherInterface|PHPUnit_Framework_MockObject_MockObject
+     * @var EventDispatcherInterface|PHPUnit_Framework_MockObject_MockObject|null
      */
-    private $eventDispatcher = null;
+    private $eventDispatcher;
 
     /**
      * The tested class.
-     * @var ClientDecorator
+     * @var ClientDecorator|null
      */
-    private $fixture = null;
+    private $fixture;
 
     /**
      * The used parser.
-     * @var ResponseParserInterface|PHPUnit_Framework_MockObject_MockObject
+     * @var ResponseParserInterface|PHPUnit_Framework_MockObject_MockObject|null
      */
-    private $parser = null;
+    private $parser;
 
     /**
      * Returns an injection parser to test and its response.
@@ -57,12 +57,12 @@ class ClientDecoratorTest extends WebTestCase
      */
     public function getParserToFetch()
     {
-        $mockParser = static::createMock(ResponseParserInterface::class);
+        $mockParser = $this->createMock(ResponseParserInterface::class);
 
         $mockParser
             ->expects($this->once())
             ->method('toArray')
-            ->with($mockEntry = static::createMock(DynamicEntry::class))
+            ->with($mockEntry = $this->createMock(DynamicEntry::class))
             ->willReturn($result = [uniqid()]);
 
         return [
@@ -75,14 +75,14 @@ class ClientDecoratorTest extends WebTestCase
      * Sets up the test.
      * @return void
      */
-    public function setUp()
+    protected function setUp()
     {
         $this->fixture = new ClientDecorator(
-            $this->client = static::createMock(Client::class),
+            $this->client = $this->createMock(Client::class),
             new DoctrineAdapter(new ArrayCache()),
-            $this->eventDispatcher = static::createMock(EventDispatcherInterface::class),
-            static::createMock(\Psr\Log\LoggerInterface::class),
-            $this->parser = static::createMock(ResponseParserInterface::class)
+            $this->eventDispatcher = $this->createMock(EventDispatcherInterface::class),
+            $this->createMock(\Psr\Log\LoggerInterface::class),
+            $this->parser = $this->createMock(ResponseParserInterface::class)
         );
     }
 
@@ -112,7 +112,7 @@ class ClientDecoratorTest extends WebTestCase
             $this->parser
                 ->expects($this->once())
                 ->method('toArray')
-                ->with($mockEntry = static::createMock(DynamicEntry::class))
+                ->with($mockEntry = $this->createMock(DynamicEntry::class))
                 ->willReturn($result = [uniqid()]);
         }
 
@@ -143,7 +143,7 @@ class ClientDecoratorTest extends WebTestCase
             $this->parser
                 ->expects($this->once())
                 ->method('toArray')
-                ->with([$mockEntry = static::createMock(DynamicEntry::class)])
+                ->with([$mockEntry = $this->createMock(DynamicEntry::class)])
                 ->willReturn($result = [uniqid()]);
         }
 
@@ -190,7 +190,7 @@ class ClientDecoratorTest extends WebTestCase
             $this->parser
                 ->expects($this->exactly(2))
                 ->method('toArray')
-                ->with([$mockEntry = static::createMock(DynamicEntry::class)])
+                ->with([$mockEntry = $this->createMock(DynamicEntry::class)])
                 ->willReturn($result = [uniqid()]);
         }
 
@@ -235,7 +235,7 @@ class ClientDecoratorTest extends WebTestCase
         $this->markTestIncomplete('Still needed to check.');
 
         $cache = new DoctrineAdapter(new ArrayCache());
-        $client = static::createMock(Client::class);
+        $client = $this->createMock(Client::class);
 
         $this->fixture = new class($client, $cache) extends ClientDecorator
         {

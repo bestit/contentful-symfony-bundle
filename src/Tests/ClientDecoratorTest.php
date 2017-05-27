@@ -37,7 +37,7 @@ class ClientDecoratorTest extends TestCase
     {
         static::assertSame(
             $this->fixture,
-            $this->fixture->setClientDecorator($mock = static::createMock(ClientDecorator::class)),
+            $this->fixture->setClientDecorator($mock = $this->createMock(ClientDecorator::class)),
             'Fluent interface broken.'
         );
 

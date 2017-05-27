@@ -3,29 +3,26 @@
 namespace BestIt\ContentfulBundle\Tests\Service;
 
 use BestIt\ContentfulBundle\Service\MarkdownParser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Tests the markdown parser.
  * @author lange <lange@bestit-online.de>
- * @category Tests
- * @package BestIt\ContentfulBundle
- * @subpackage Service
- * @version $id$
+ * @package BestIt\ContentfulBundle\Tests\Service
  */
-class MarkdownParserTest extends WebTestCase
+class MarkdownParserTest extends TestCase
 {
     /**
      * The tested class.
-     * @var MarkdownParser
+     * @var MarkdownParser|null
      */
-    protected $fixture = null;
+    protected $fixture;
 
     /**
      * Sets up the test.
      * @return void
      */
-    public function setUp()
+    protected function setUp()
     {
         $this->fixture = new MarkdownParser();
     }
@@ -36,6 +33,6 @@ class MarkdownParserTest extends WebTestCase
      */
     public function testToHTMLSimple()
     {
-        $this->assertSame('<h1>Headline</h1>', $this->fixture->toHtml('#Headline'));
+        static::assertSame('<h1>Headline</h1>', $this->fixture->toHtml('#Headline'));
     }
 }

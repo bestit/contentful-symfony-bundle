@@ -23,7 +23,7 @@ class CacheResetServiceTest extends TestCase
      */
     public function testResetEntryCacheSuccess()
     {
-        $fixture = new CacheResetService($cache = static::createMock(CacheItemPoolInterface::class), $ids = [uniqid()]);
+        $fixture = new CacheResetService($cache = $this->createMock(CacheItemPoolInterface::class), $ids = [uniqid()]);
 
         $cache
             ->expects($this->once())
@@ -41,7 +41,7 @@ class CacheResetServiceTest extends TestCase
             ->with($id)
             ->willReturn(true);
 
-        $this->assertTrue($fixture->resetEntryCache((object) [
+        static::assertTrue($fixture->resetEntryCache((object) [
             'sys' => (object) [
                 'id' => $id,
                 'type' => 'Entry'
@@ -55,12 +55,12 @@ class CacheResetServiceTest extends TestCase
      */
     public function testResetEntryCacheWrongType()
     {
-        $fixture = new CacheResetService($cache = static::createMock(CacheItemPoolInterface::class), []);
+        $fixture = new CacheResetService($cache = $this->createMock(CacheItemPoolInterface::class), []);
 
         $cache
             ->expects($this->never())
             ->method('hasItem');
 
-        $this->assertFalse($fixture->resetEntryCache(new stdClass()));
+        static::assertFalse($fixture->resetEntryCache(new stdClass()));
     }
 }

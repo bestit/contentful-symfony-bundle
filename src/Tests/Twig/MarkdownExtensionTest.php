@@ -4,30 +4,27 @@ namespace BestIt\ContentfulBundle\Tests\Twig;
 
 use BestIt\ContentfulBundle\Service\MarkdownParser;
 use BestIt\ContentfulBundle\Twig\MarkdownExtension;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use PHPUnit\Framework\TestCase;
 use Twig_SimpleFilter;
 
 /**
  * Tests the markdown extension.
  * @author lange <lange@bestit-online.de>
- * @category Tests
- * @package BestIt\ContentfulBundle
- * @subpackage Twig
- * @version $id$
+ * @package BestIt\ContentfulBundle\Tests\Twig
  */
-class MarkdownExtensionTest extends WebTestCase
+class MarkdownExtensionTest extends TestCase
 {
     /**
      * The tested class.
-     * @var MarkdownExtension
+     * @var MarkdownExtension|null
      */
-    protected $fixture = null;
+    protected $fixture;
 
     /**
      * Sets up the test.
      * @return void
      */
-    public function setUp()
+    protected function setUp()
     {
         $this->fixture = new MarkdownExtension(new MarkdownParser());
     }
@@ -41,15 +38,15 @@ class MarkdownExtensionTest extends WebTestCase
         $filters = $this->fixture->getFilters();
 
         /** @var Twig_SimpleFilter $filter */
-        $this->assertInstanceOf(Twig_SimpleFilter::class, $filter = $filters[0], 'Wrong filter instance.');
+        static::assertInstanceOf(Twig_SimpleFilter::class, $filter = $filters[0], 'Wrong filter instance.');
 
-        $this->assertSame(
+        static::assertSame(
             [$this->fixture, 'parseMarkdown'],
             $filter->getCallable(),
             'The callback is not set correctly.'
         );
 
-        $this->assertSame('parseMarkdown', $filter->getName(), 'The name was not correct.');
+        static::assertSame('parseMarkdown', $filter->getName(), 'The name was not correct.');
     }
 
     /**
@@ -58,6 +55,6 @@ class MarkdownExtensionTest extends WebTestCase
      */
     public function testParseMarkdownSimple()
     {
-        $this->assertSame('<h1>Headline</h1>', $this->fixture->parseMarkdown('#Headline'));
+        static::assertSame('<h1>Headline</h1>', $this->fixture->parseMarkdown('#Headline'));
     }
 }

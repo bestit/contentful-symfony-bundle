@@ -5,35 +5,31 @@ namespace BestIt\ContentfulBundle\Tests\Twig;
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
 use BestIt\ContentfulBundle\Twig\ContentfulExtension;
 use Contentful\Delivery\Query;
+use PHPUnit\Framework\TestCase;
 use PHPUnit_Framework_MockObject_MockObject;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Twig_SimpleFunction;
 
 /**
  * Tests the contentful extension.
  * @author lange <lange@bestit-online.de>
- * @category Tests
- * @package BestIt\ContentfulBundle
- * @subpackage Twig
- * @version $id$
+ * @package BestIt\ContentfulBundle\Tests\Twig
  */
-class ContentfulExtensionTest extends WebTestCase
+class ContentfulExtensionTest extends TestCase
 {
     /**
      * The mocked client.
-     * @var ClientDecorator|PHPUnit_Framework_MockObject_MockObject
+     * @var ClientDecorator|PHPUnit_Framework_MockObject_MockObject|null
      */
-    private $mockedClient = null;
+    private $mockedClient;
 
     /**
      * The tested class.
-     * @var ContentfulExtension
+     * @var ContentfulExtension|null
      */
-    private $fixture = null;
+    private $fixture;
 
     /**
-     * Get contentul getter
-     *
+     * Get contentful getter name with rules to assert.
      * @return array
      */
     public function getContentfulGetter()
@@ -48,10 +44,10 @@ class ContentfulExtensionTest extends WebTestCase
      * Sets up the test.
      * @return void
      */
-    public function setUp()
+    protected function setUp()
     {
         $this->fixture = new ContentfulExtension(
-            $this->mockedClient = static::createMock(ClientDecorator::class)
+            $this->mockedClient = $this->createMock(ClientDecorator::class)
         );
     }
 
@@ -64,15 +60,15 @@ class ContentfulExtensionTest extends WebTestCase
         $functions = $this->fixture->getFunctions();
 
         /** @var Twig_SimpleFunction $function */
-        $this->assertInstanceOf(Twig_SimpleFunction::class, $function = $functions[0], 'Wrong function instance.');
+        static::assertInstanceOf(Twig_SimpleFunction::class, $function = $functions[0], 'Wrong function instance.');
 
-        $this->assertSame(
+        static::assertSame(
             [$this->fixture, 'getContentfulContent'],
             $function->getCallable(),
             'The callback is not set correctly.'
         );
 
-        $this->assertSame('get_contentful', $function->getName(), 'The name was not correct.');
+        static::assertSame('get_contentful', $function->getName(), 'The name was not correct.');
     }
 
     /**
