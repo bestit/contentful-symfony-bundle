@@ -96,7 +96,7 @@ class Configuration implements ConfigurationInterface
                 '<https://www.contentful.com/developers/docs/references/content-management-api/#/reference/' .
                 'content-types>'
             )
-            ->normalizeKeys(true)
+            ->normalizeKeys(false)
             ->requiresAtLeastOneElement()
             ->useAttributeAsKey('id')
             ->prototype('array')
