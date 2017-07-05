@@ -68,6 +68,9 @@ best_it_contentful:
 
         # Which cache ids should be resetted everytime?
         collection_consumer:  []
+        
+        # Should the whole cache pool be cleared after an entry reset over the webhook is detected
+        complete_clear_on_webhook: false
 
     # Add the content types mainly documented under: <https://www.contentful.com/developers/docs/references/content-management-api/#/r
 eference/content-types>

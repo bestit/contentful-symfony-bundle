@@ -28,15 +28,23 @@ class CacheResetService
     protected $cacheResetIds = [];
 
     /**
+     * Should the complete cache be cleared after request
+     * @var bool
+     */
+    private $webhookCompleteReset = false;
+
+    /**
      * CacheResetService constructor.
+     *
      * @param CacheItemPoolInterface $cache
      * @param array $cacheResetIds
+     * @param bool $webhookCompleteReset
      */
-    public function __construct(CacheItemPoolInterface $cache, array $cacheResetIds)
+    public function __construct(CacheItemPoolInterface $cache, array $cacheResetIds, bool $webhookCompleteReset)
     {
-        $this
-            ->setCache($cache)
-            ->setCacheResetIds($cacheResetIds);
+        $this->setCache($cache)
+            ->setCacheResetIds($cacheResetIds)
+            ->setWebhookCompleteReset($webhookCompleteReset);
     }
 
     /**
@@ -55,6 +63,16 @@ class CacheResetService
     protected function getCacheResetIds(): array
     {
         return $this->cacheResetIds;
+    }
+
+    /**
+     * Is WebhookCompleteReset
+     *
+     * @return bool
+     */
+    protected function isWebhookCompleteReset(): bool
+    {
+        return $this->webhookCompleteReset;
     }
 
     /**
@@ -80,6 +98,12 @@ class CacheResetService
             if ($pool instanceof TagAwareAdapterInterface) {
                 $pool->invalidateTags([$entryId]);
             }
+
+            // Should the whole contentful cache be cleared ?
+            if ($this->isWebhookCompleteReset()) {
+                $pool->clear();
+            }
+
 
             $return = true;
         }
@@ -107,6 +131,19 @@ class CacheResetService
     protected function setCacheResetIds(array $cacheResetIds): CacheResetService
     {
         $this->cacheResetIds = $cacheResetIds;
+
+        return $this;
+    }
+
+    /**
+     * Set WebhookCompleteReset
+     *
+     * @param bool $webhookCompleteReset
+     * @return CacheResetService
+     */
+    public function setWebhookCompleteReset(bool $webhookCompleteReset): CacheResetService
+    {
+        $this->webhookCompleteReset = $webhookCompleteReset;
 
         return $this;
     }

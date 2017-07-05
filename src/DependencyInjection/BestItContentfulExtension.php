@@ -38,6 +38,11 @@ class BestItContentfulExtension extends Extension
             $config['caching']['collection_consumer'] ?? []
         );
 
+        $container->setParameter(
+            'best_it_contentful.complete_clear_on_webhook',
+            $config['caching']['complete_clear_on_webhook'] ?? []
+        );
+
         $container->setAlias(
             'best_it_contentful.cache.pool.delivery',
             $config['caching']['content']
