@@ -9,9 +9,7 @@ use Symfony\Component\Cache\Adapter\TagAwareAdapterInterface;
 /**
  * Service to reset the cache for contentful.
  * @author lange <lange@bestit-online.de>
- * @package BestIt\ContentfulBundle
- * @subpackage Service
- * @version $id$
+ * @package BestIt\ContentfulBundle\Service
  */
 class CacheResetService
 {
@@ -19,24 +17,32 @@ class CacheResetService
      * The used cache.
      * @var CacheItemPoolInterface
      */
-    protected $cache = null;
+    protected $cache;
 
     /**
      * Which ids should be resetted everytime.
      * @var array
      */
-    protected $cacheResetIds = [];
+    protected $cacheResetIds;
+
+    /**
+     * Should the complete cache be cleared after request
+     * @var bool
+     */
+    private $withCompleteReset = false;
 
     /**
      * CacheResetService constructor.
+     *
      * @param CacheItemPoolInterface $cache
      * @param array $cacheResetIds
+     * @param bool $completeReset
      */
-    public function __construct(CacheItemPoolInterface $cache, array $cacheResetIds)
+    public function __construct(CacheItemPoolInterface $cache, array $cacheResetIds, bool $completeReset = false)
     {
-        $this
-            ->setCache($cache)
-            ->setCacheResetIds($cacheResetIds);
+        $this->setCache($cache)
+            ->setCacheResetIds($cacheResetIds)
+            ->withCompleteReset($completeReset);
     }
 
     /**
@@ -69,16 +75,20 @@ class CacheResetService
         $return = false;
 
         if (strtolower(@$entry->sys->type) === 'entry') {
-            if ($pool->hasItem($entryId = $entry->sys->id)) {
-                $pool->deleteItem($entryId);
-            }
+            if ($this->withCompleteReset()) {
+                $pool->clear();
+            } else {
+                if ($pool->hasItem($entryId = $entry->sys->id)) {
+                    $pool->deleteItem($entryId);
+                }
 
-            if ($deleteIds = $this->getCacheResetIds()) {
-                $pool->deleteItems($deleteIds);
-            }
+                if ($deleteIds = $this->getCacheResetIds()) {
+                    $pool->deleteItems($deleteIds);
+                }
 
-            if ($pool instanceof TagAwareAdapterInterface) {
-                $pool->invalidateTags([$entryId]);
+                if ($pool instanceof TagAwareAdapterInterface) {
+                    $pool->invalidateTags([$entryId]);
+                }
             }
 
             $return = true;
@@ -109,5 +119,21 @@ class CacheResetService
         $this->cacheResetIds = $cacheResetIds;
 
         return $this;
+    }
+
+    /**
+     * Should the complete cache be resettet?
+     * @param bool $newStatus The new status.
+     * @return bool The old status.
+     */
+    private function withCompleteReset(bool $newStatus = false): bool
+    {
+        $oldStatus = $this->withCompleteReset;
+
+        if (func_num_args()) {
+            $this->withCompleteReset = $newStatus;
+        }
+
+        return $oldStatus;
     }
 }

@@ -23,23 +23,71 @@ class CacheResetServiceTest extends TestCase
      */
     public function testResetEntryCacheSuccess()
     {
-        $fixture = new CacheResetService($cache = $this->createMock(CacheItemPoolInterface::class), $ids = [uniqid()]);
+        $fixture = new CacheResetService(
+            $cache = $this->createMock(CacheItemPoolInterface::class),
+            $ids = [uniqid()],
+            false
+        );
 
         $cache
-            ->expects($this->once())
+            ->expects(static::once())
             ->method('deleteItem')
             ->with($id = uniqid());
 
         $cache
-            ->expects($this->once())
+            ->expects(static::once())
             ->method('deleteItems')
             ->with($ids);
 
         $cache
-            ->expects($this->once())
+            ->expects(static::once())
             ->method('hasItem')
             ->with($id)
             ->willReturn(true);
+
+        $cache
+            ->expects(static::never())
+            ->method('clear');
+
+        static::assertTrue($fixture->resetEntryCache((object) [
+            'sys' => (object) [
+                'id' => $id,
+                'type' => 'Entry'
+            ]
+        ]));
+    }
+
+    /**
+     * Checks that the whole content cache is cleared if configured.
+     * @return void
+     */
+    public function testThatWholeCacheIsCleared()
+    {
+        $fixture = new CacheResetService(
+            $cache = $this->createMock(CacheItemPoolInterface::class),
+            $ids = [uniqid()],
+            true
+        );
+
+        $cache
+            ->expects(static::never())
+            ->method('deleteItem')
+            ->with($id = uniqid());
+
+        $cache
+            ->expects(static::never())
+            ->method('deleteItems')
+            ->with($ids);
+
+        $cache
+            ->expects(static::never())
+            ->method('hasItem')
+            ->with($id)
+            ->willReturn(true);
+
+        $cache
+            ->expects(static::once())
+            ->method('clear');
 
         static::assertTrue($fixture->resetEntryCache((object) [
             'sys' => (object) [
@@ -55,10 +103,14 @@ class CacheResetServiceTest extends TestCase
      */
     public function testResetEntryCacheWrongType()
     {
-        $fixture = new CacheResetService($cache = $this->createMock(CacheItemPoolInterface::class), []);
+        $fixture = new CacheResetService(
+            $cache = $this->createMock(CacheItemPoolInterface::class),
+            [],
+            false
+        );
 
         $cache
-            ->expects($this->never())
+            ->expects(static::never())
             ->method('hasItem');
 
         static::assertFalse($fixture->resetEntryCache(new stdClass()));
