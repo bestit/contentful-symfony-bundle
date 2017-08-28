@@ -5,6 +5,7 @@ namespace BestIt\ContentfulBundle\Routing;
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
 use Contentful\Delivery\Query;
 use Contentful\Exception\NotFoundException;
+use DomainException;
 use Exception;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -280,8 +281,10 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
 
         if ($requestUri !== '/') {
             if ($entry = $this->getMatchingEntry($requestUri)) {
-                if (!$controller = $entry[$this->getControllerField()]) {
-                    // TODO: Error Management
+                $controllerField = $this->getControllerField();
+
+                if (!((array_key_exists($controllerField, $entry)) && ($controller = $entry[$controllerField]))) {
+                    throw new DomainException('The found content does not provide a controller field.');
                 }
 
                 return [
