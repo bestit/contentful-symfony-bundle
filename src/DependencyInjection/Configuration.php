@@ -15,6 +15,31 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
  */
 class Configuration implements ConfigurationInterface
 {
+    protected function getValidationConfig(): ArrayNodeDefinition
+    {
+        $node = (new TreeBuilder())->root('validations');
+
+        $node->prototype('array')
+            ->children()
+                ->arrayNode('size')
+                    ->children()
+                        ->integerNode('max')->end()
+                        ->integerNode('min')->end()
+                    ->end()
+                ->end()
+                ->arrayNode('in')
+                    ->prototype('scalar')->end()
+                ->end()
+                ->arrayNode('linkContentType')
+                    ->prototype('scalar')->end()
+                ->end()
+                ->booleanNode('unique')->end()
+            ->end()
+        ->end();
+
+        return $node;
+    }
+
     /**
      * Adds the caching types to the contentful config.
      * @return ArrayNodeDefinition
@@ -129,15 +154,7 @@ class Configuration implements ConfigurationInterface
                                     ->children()
                                         ->enumNode('type')->values(['Link', 'Symbol'])->end()
                                         ->enumNode('linkType')->values(['Asset', 'Entry'])->end()
-                                        ->arrayNode('validations')
-                                            ->prototype('array')
-                                                ->children()
-                                                    ->arrayNode('linkContentType')
-                                                        ->prototype('scalar')->end()
-                                                    ->end()
-                                                ->end()
-                                            ->end()
-                                        ->end()
+                                        ->append($this->getValidationConfig())
                                     ->end()
                                 ->end()
                                 ->enumNode('type')
@@ -209,27 +226,7 @@ class Configuration implements ConfigurationInterface
                                     ->end()
                                 ->end()
                                 // endregion
-                                // region validations
-                                ->arrayNode('validations')
-                                    ->prototype('array')
-                                        ->children()
-                                            ->arrayNode('size')
-                                                ->children()
-                                                    ->integerNode('max')->end()
-                                                    ->integerNode('min')->end()
-                                                ->end()
-                                            ->end()
-                                            ->arrayNode('in')
-                                                ->prototype('scalar')->end()
-                                            ->end()
-                                            ->arrayNode('linkContentType')
-                                                ->prototype('scalar')->end()
-                                            ->end()
-                                            ->booleanNode('unique')->end()
-                                        ->end()
-                                    ->end()
-                                ->end()
-                                // endregion
+                                ->append($this->getValidationConfig())
                             ->end()
                          ->end()
                     ->end()

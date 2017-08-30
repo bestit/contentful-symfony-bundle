@@ -203,18 +203,18 @@ class ContentfulCreateTypesCommand extends ContainerAwareCommand
     protected function setContentType(Client $client, array $settings, string $space, string $typeId)
     {
         array_walk($settings['fields'], function (array &$field) {
-            if (!$field['validations']) {
+            if (!@$field['validations']) {
                 unset($field['validations']);
             } else {
-                array_walk($field['validations'], function (array &$validation) {
-                    // Fix the bug, that symfony adds a wrong und undefined node.
-                    if (array_key_exists('linkContentType', $validation) && !$validation['linkContentType']) {
-                        unset($validation['linkContentType']);
-                    }
-                    if (array_key_exists('in', $validation) && !$validation['in']) {
-                        unset($validation['in']);
-                    }
-                });
+                $this->cleanValidations($field);
+            }
+
+            if (array_key_exists('items', $field) && $field['items']) {
+                if (array_key_exists('validations', $field['items']) && !$field['items']['validations']) {
+                    unset($field['items']['validations']);
+                } else {
+                    $this->cleanValidations($field['items']);
+                }
             }
         });
 
@@ -337,5 +337,20 @@ class ContentfulCreateTypesCommand extends ContainerAwareCommand
                 'X-Contentful-Version' => $this->getVersionOfEditorInterface($client, $space, $typeId)
             ]
         ]);
+    }
+
+    protected function cleanValidations(array &$field)
+    {
+        if (array_key_exists('validations', $field) && $field['validations']) {
+            array_walk($field['validations'], function (array &$validation) {
+                // Fix the bug, that symfony adds a wrong und undefined node.
+                if (array_key_exists('linkContentType', $validation) && !$validation['linkContentType']) {
+                    unset($validation['linkContentType']);
+                }
+                if (array_key_exists('in', $validation) && !$validation['in']) {
+                    unset($validation['in']);
+                }
+            });
+        }
     }
 }
