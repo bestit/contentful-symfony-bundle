@@ -53,7 +53,7 @@ class SimpleResponseParser implements ResponseParserInterface
         }, $fields);
 
         return array_filter($return, function ($value) {
-            return (is_string($value) && $value !== '') || is_bool($value) || !is_scalar($value);
+            return (is_string($value) && $value !== '') || is_bool($value) || !is_scalar($value) || is_numeric($value);
         });
     }
 
