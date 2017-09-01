@@ -225,7 +225,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
      * @param array $entry
      * @return string
      */
-    protected function getRouteNameForEntry(array $entry)
+    public function getRouteNameForEntry(array $entry)
     {
         return 'contentful_' . $entry['_contentType']->getId() . '_' . $entry['_id'];
     }
