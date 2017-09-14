@@ -170,6 +170,10 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
      */
     protected function getMatchingEntry(string $requestUri)
     {
+        if (strlen($requestUri) > 0 && $requestUri[0] !== '/') {
+            $requestUri = '/' . $requestUri;
+        }
+
         $cache = $this->getCache();
         $cacheHit = $cache->getItem($cacheId = sha1($requestUri));
 
@@ -181,7 +185,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
                     $query
                         ->setContentType($routableType)
                         ->setLimit(1)
-                        ->where('fields.' . $this->getSlugField(), trim($requestUri, '/\\'));
+                        ->where('fields.' . $this->getSlugField(), $requestUri);
                 });
 
                 if ($entries) {
