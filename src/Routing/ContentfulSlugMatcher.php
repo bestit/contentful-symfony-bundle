@@ -256,6 +256,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
             try {
                 $entries = $this->client->getEntries(function (Query $query) use ($routableType) {
                     $query->setContentType($routableType);
+                    $query->setLimit(1000);
                 });
 
                 array_walk($entries, function ($entry) {
