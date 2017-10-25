@@ -9,6 +9,7 @@ use Contentful\Delivery\Query;
 use Contentful\Exception\NotFoundException;
 use PHPUnit\Framework\TestCase;
 use PHPUnit_Framework_MockObject_MockObject;
+use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Matcher\RequestMatcherInterface;
@@ -41,13 +42,20 @@ class ContentfulSlugMatcherTest extends TestCase
     private $slugField;
 
     /**
+     * The cache
+     *
+     * @var CacheItemPoolInterface|null|PHPUnit_Framework_MockObject_MockObject
+     */
+    private $cache;
+
+    /**
      * Sets up the test.
      * @return void
      */
     protected function setUp()
     {
         $this->fixture = new ContentfulSlugMatcher(
-            $this->createMock(CacheItemPoolInterface::class),
+            $this->cache = $this->createMock(CacheItemPoolInterface::class),
             $this->client = $this->createMock(ClientDecorator::class),
             uniqid('', true),
             $this->slugField = uniqid('', true)
@@ -105,6 +113,16 @@ class ContentfulSlugMatcherTest extends TestCase
             }))
             ->willThrowException($this->createMock(NotFoundException::class));
 
+        $this->cache
+            ->expects(static::once())
+            ->method('getItem')
+            ->with('route_collection')
+            ->willReturn($cacheItem = $this->createMock(CacheItemInterface::class));
+
+        $cacheItem->method('isHit')->willReturn(false);
+        $cacheItem->method('set')->with(static::isInstanceOf(RouteCollection::class))->willReturnSelf();
+        $this->cache->method('save')->with($cacheItem);
+
         $collection = $this->fixture->getRouteCollection();
 
         static::assertInstanceOf(RouteCollection::class, $collection, 'Wrong return.');
@@ -117,6 +135,31 @@ class ContentfulSlugMatcherTest extends TestCase
         );
 
         static::assertSame('/' . $slug, $route->getPath(), 'Wrong path');
+    }
+
+    /**
+     * Checks if the route collection use cache
+     *
+     * @return void
+     */
+    public function testGetRouteCollectionCache()
+    {
+        $this->fixture->setRoutableTypes([$type1 = uniqid(), $type2 = uniqid()]);
+
+        $this->client
+            ->expects(static::never())
+            ->method('getEntries');
+
+        $this->cache
+            ->expects(static::once())
+            ->method('getItem')
+            ->with('route_collection')
+            ->willReturn($cacheItem = $this->createMock(CacheItemInterface::class));
+
+        $cacheItem->method('isHit')->willReturn(true);
+        $cacheItem->method('get')->willReturn($collection = new RouteCollection());
+
+        static::assertSame($collection, $this->fixture->getRouteCollection());
     }
 
     /**
