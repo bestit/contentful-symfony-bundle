@@ -250,24 +250,33 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
      */
     protected function loadRouteCollection()
     {
-        $this->collection = new RouteCollection();
+        $cache = $this->getCache();
+        $cacheHit = $cache->getItem('route_collection');
 
-        array_map(function (string $routableType) {
-            try {
-                $entries = $this->client->getEntries(function (Query $query) use ($routableType) {
-                    $query->setContentType($routableType);
-                    $query->setLimit(1000);
-                });
+        if ($cacheHit->isHit()) {
+            $this->collection = $cacheHit->get();
+        } else {
+            $this->collection = new RouteCollection();
 
-                array_walk($entries, function ($entry) {
-                    $this->collection->add($this->getRouteNameForEntry($entry), new Route($entry[$this->slugField]));
-                });
-            } catch (NotFoundException $clientException) {
-                // Do nothing at the moment with an error by the contentful sdk
-            } catch (Exception $exception) {
-                throw $exception;
-            }
-        }, $this->getRoutableTypes());
+            array_map(function (string $routableType) {
+                try {
+                    $entries = $this->client->getEntries(function (Query $query) use ($routableType) {
+                        $query->setContentType($routableType);
+                        $query->setLimit(1000);
+                    });
+
+                    array_walk($entries, function ($entry) {
+                        $this->collection->add($this->getRouteNameForEntry($entry), new Route($entry[$this->slugField]));
+                    });
+                } catch (NotFoundException $clientException) {
+                    // Do nothing at the moment with an error by the contentful sdk
+                } catch (Exception $exception) {
+                    throw $exception;
+                }
+            }, $this->getRoutableTypes());
+
+            $cache->save($cacheHit->set($this->collection));
+        }
     }
 
     /**
