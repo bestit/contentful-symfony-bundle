@@ -27,15 +27,12 @@
         "symfony/symfony": "^3.1",
         "doctrine/doctrine-cache-bundle": "^1.2",
         "symfony/monolog-bundle": "^2.8",
-        "contentful/contentful-bundle": "^1.0",
+        "contentful/contentful-bundle": "^1.0 || ^2.0",
         "erusev/parsedown": "^1.6"
     },
     "require-dev": {
         "squizlabs/php_codesniffer": "^2.7",
         "matthiasnoback/symfony-dependency-injection-test": "^1",
         "phpunit/phpunit": "^5"
-    },
-    "conflict": {
-        "contentful/contentful": ">=1.1"
     }
 }
