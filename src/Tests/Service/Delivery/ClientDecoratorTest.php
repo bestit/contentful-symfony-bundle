@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BestIt\ContentfulBundle\Tests\Service\Delivery;
 
 use BestIt\ContentfulBundle\ClientEvents;
@@ -19,40 +21,35 @@ use Symfony\Component\EventDispatcher\GenericEvent;
 
 /**
  * Tests the service for cache resetting.
+ *
  * @author lange <lange@bestit-online.de>
- * @category Tests
- * @package BestIt\ContentfulBundle
- * @subpackage Service\Delivery
- * @version $id$
+ * @package BestIt\ContentfulBundle\Tests\Service\Delivery
  */
 class ClientDecoratorTest extends TestCase
 {
     /**
-     * The mocked client.
-     * @var Client|PHPUnit_Framework_MockObject_MockObject|null
+     * @var Client|PHPUnit_Framework_MockObject_MockObject|null The mocked client.
      */
     private $client;
 
     /**
-     * The mocked event dispatcher.
-     * @var EventDispatcherInterface|PHPUnit_Framework_MockObject_MockObject|null
+     * @var EventDispatcherInterface|PHPUnit_Framework_MockObject_MockObject|null The mocked event dispatcher.
      */
     private $eventDispatcher;
 
     /**
-     * The tested class.
-     * @var ClientDecorator|null
+     * @var ClientDecorator|null The tested class.
      */
     private $fixture;
 
     /**
-     * The used parser.
-     * @var ResponseParserInterface|PHPUnit_Framework_MockObject_MockObject|null
+     * @var ResponseParserInterface|PHPUnit_Framework_MockObject_MockObject|null The used parser.
      */
     private $parser;
 
     /**
      * Returns an injection parser to test and its response.
+     *
      * @return array
      */
     public function getParserToFetch()
@@ -73,6 +70,7 @@ class ClientDecoratorTest extends TestCase
 
     /**
      * Sets up the test.
+     *
      * @return void
      */
     protected function setUp()
@@ -88,6 +86,7 @@ class ClientDecoratorTest extends TestCase
 
     /**
      * Checks if the magical getter calls the base client.
+     *
      * @return void
      */
     public function testCallSuccess()
@@ -103,6 +102,7 @@ class ClientDecoratorTest extends TestCase
 
     /**
      * Checks if the entry getter is cached and its response simplified.
+     *
      * @param ResponseParserInterface $parser
      * @return void
      */
@@ -122,19 +122,24 @@ class ClientDecoratorTest extends TestCase
             ->with($id = uniqid())
             ->willReturn($mockEntry);
 
+        $mockEntry
+            ->method('getContentType')
+            ->willReturn($mockType = $this->createMock(ContentType::class));
+
         $this->eventDispatcher
             ->expects($this->once())
             ->method('dispatch')
             ->with(ClientEvents::LOAD_CONTENTFUL_ENTRY, $this->isInstanceOf(GenericEvent::class));
 
         static::assertSame($result, $this->fixture->getEntry($id), 'The first response was not correct.');
-        static::assertSame($result, $this->fixture->getEntry($id), 'The second response should be cached and the same.');
+        static::assertSame($result, $this->fixture->getEntry($id),
+            'The second response should be cached and the same.');
     }
 
     /**
      * Checks if the entries getter is cached and its response simplified.
+     *
      * @param ResponseParserInterface $parser
-     * @param array $result
      * @return void
      */
     public function testGetEntriesFullWithCache(ResponseParserInterface $parser = null)
@@ -151,6 +156,10 @@ class ClientDecoratorTest extends TestCase
             ->expects($this->once())
             ->method('getEntries')
             ->willReturn([$mockEntry]);
+
+        $mockEntry
+            ->method('getContentType')
+            ->willReturn($mockType = $this->createMock(ContentType::class));
 
         $callback = function ($query) {
             static::assertInstanceOf(Query::class, $query);
@@ -181,6 +190,7 @@ class ClientDecoratorTest extends TestCase
 
     /**
      * Checks if the entries getter is not cached and its response simplified.
+     *
      * @param ResponseParserInterface $parser
      * @return void
      */
@@ -193,6 +203,10 @@ class ClientDecoratorTest extends TestCase
                 ->with([$mockEntry = $this->createMock(DynamicEntry::class)])
                 ->willReturn($result = [uniqid()]);
         }
+
+        $mockEntry
+            ->method('getContentType')
+            ->willReturn($mockType = $this->createMock(ContentType::class));
 
         $this->client
             ->expects($this->exactly(2))
@@ -228,6 +242,7 @@ class ClientDecoratorTest extends TestCase
 
     /**
      * Checks the simplification of the response.
+     *
      * @return void
      */
     public function testSimplifyResponse()

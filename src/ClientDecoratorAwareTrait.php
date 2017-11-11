@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BestIt\ContentfulBundle;
 
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
@@ -13,13 +15,13 @@ use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
 trait ClientDecoratorAwareTrait
 {
     /**
-     * The client decorator.
-     * @var ClientDecorator|null
+     * @var ClientDecorator|null The client decorator.
      */
-    private $clientDecorator = null;
+    protected $clientDecorator = null;
 
     /**
-     * Returns the client decorator.
+     * Returns the client decorator in a type safe way.
+     *
      * @return ClientDecorator
      */
     public function getClientDecorator(): ClientDecorator
@@ -29,12 +31,14 @@ trait ClientDecoratorAwareTrait
 
     /**
      * Sets the client decorator.
+     *
      * @param ClientDecorator $clientDecorator
      * @return $this
      */
-    public function setClientDecorator(ClientDecorator $clientDecorator)
+    public function setClientDecorator(ClientDecorator $clientDecorator): self
     {
         $this->clientDecorator = $clientDecorator;
+
         return $this;
     }
 }

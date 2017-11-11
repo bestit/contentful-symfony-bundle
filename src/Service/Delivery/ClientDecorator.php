@@ -1,11 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BestIt\ContentfulBundle\Service\Delivery;
 
 use BestIt\ContentfulBundle\ClientEvents;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use Contentful\Delivery\Asset;
 use Contentful\Delivery\Client;
+use Contentful\Delivery\ContentTypeField;
 use Contentful\Delivery\DynamicEntry;
 use Contentful\Delivery\Query;
 use Contentful\ResourceArray;
@@ -16,56 +19,50 @@ use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
+use Traversable;
+use function array_filter;
+use function array_merge;
+use function array_walk;
+use function get_class;
+use function is_array;
+use function method_exists;
+use function sprintf;
+use function ucfirst;
 
 /**
  * Extends the logics for the contentful delivery.
+ *
  * @author lange <lange@bestit-online.de>
- * @method Asset getAsset(string $id, string|null $locale = null)
- * @package BestIt\ContentfulBundle
- * @subpackage Service
- * @version $id$
+ * @method Asset getAsset(string $id, string | null $locale = null)
+ * @package BestIt\ContentfulBundle\Service
  */
 class ClientDecorator implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
     /**
-     * The possible cache class.
-     * @var CacheItemPoolInterface
+     * @var CacheItemPoolInterface The possible cache class.
      */
-    protected $cache = null;
+    private $cache;
 
     /**
-     * The used client.
-     * @var Client
+     * @var Client The used client.
      */
-    protected $client = null;
+    private $client;
 
     /**
-     * The default response parser.
-     * @var ResponseParserInterface
+     * @var ResponseParserInterface The default response parser.
      */
-    protected $defaultResponseParser = null;
+    private $defaultResponseParser;
 
     /**
-     * The event dispatcher.
-     * @var EventDispatcherInterface
+     * @var EventDispatcherInterface The event dispatcher.
      */
-    protected $eventDispatcher = null;
-
-    /**
-     * Delegates to the original client.
-     * @param string $method
-     * @param array $args
-     * @return mixed
-     */
-    public function __call(string $method, array $args = [])
-    {
-        return $this->client->$method(...$args);
-    }
+    private $eventDispatcher;
 
     /**
      * ClientDecorator constructor.
+     *
      * @param Client $client
      * @param CacheItemPoolInterface $cache
      * @param EventDispatcherInterface $eventDispatcher
@@ -79,16 +76,29 @@ class ClientDecorator implements LoggerAwareInterface
         LoggerInterface $logger,
         ResponseParserInterface $responseParser
     ) {
-        $this
-            ->setCache($cache)
-            ->setClient($client)
-            ->setDefaultResponseParser($responseParser)
-            ->setEventDispatcher($eventDispatcher)
-            ->setLogger($logger);
+        $this->cache = $cache;
+        $this->client = $client;
+        $this->defaultResponseParser = $responseParser;
+        $this->eventDispatcher = $eventDispatcher;
+
+        $this->setLogger($logger);
+    }
+
+    /**
+     * Delegates to the original client.
+     *
+     * @param string $method
+     * @param array $args
+     * @return mixed
+     */
+    public function __call(string $method, array $args = [])
+    {
+        return $this->client->$method(...$args);
     }
 
     /**
      * Returns a base query.
+     *
      * @return Query
      */
     protected function getBaseQuery(): Query
@@ -97,34 +107,8 @@ class ClientDecorator implements LoggerAwareInterface
     }
 
     /**
-     * Returns the cache if there is one.
-     * @return void|CacheItemPoolInterface
-     */
-    private function getCache()
-    {
-        return $this->cache;
-    }
-
-    /**
-     * Returns the used client.
-     * @return Client
-     */
-    private function getClient(): Client
-    {
-        return $this->client;
-    }
-
-    /**
-     * Returns the default response parser.
-     * @return ResponseParserInterface
-     */
-    private function getDefaultResponseParser(): ResponseParserInterface
-    {
-        return $this->defaultResponseParser;
-    }
-
-    /**
      * Returns a list of clients.
+     *
      * @param callable $buildQuery
      * @param bool|string $cacheId
      * @param ResponseParserInterface $parser
@@ -134,12 +118,12 @@ class ClientDecorator implements LoggerAwareInterface
         callable $buildQuery,
         string $cacheId = '',
         ResponseParserInterface $parser = null
-    ):array {
-        $cache = $this->getCache();
+    ): array {
+        $cache = $this->cache;
         $cacheItem = null;
         $cacheHit = false;
         $entries = null;
-        $logger = $this->getLogger();
+        $logger = $this->logger;
         $query = $this->getBaseQuery();
 
         $buildQuery($query);
@@ -153,10 +137,10 @@ class ClientDecorator implements LoggerAwareInterface
         }
 
         if (!$cacheHit || !$cacheId) {
-            $dispatcher = $this->getEventDispatcher();
+            $dispatcher = $this->eventDispatcher;
 
             if (!$parser) {
-                $parser = $this->getDefaultResponseParser();
+                $parser = $this->defaultResponseParser;
             }
 
             try {
@@ -167,16 +151,12 @@ class ClientDecorator implements LoggerAwareInterface
 
                 /** @var ResourceArray $entries */
                 $entries = $this->client->getEntries($query);
-                $entryIds = [];
+                $entryIds = $this->getEntryIds($entries);
 
                 $dispatcher->dispatch(ClientEvents::LOAD_CONTENTFUL_ENTRIES, new GenericEvent($entries));
 
                 foreach ($entries as $entry) {
                     $dispatcher->dispatch(ClientEvents::LOAD_CONTENTFUL_ENTRY, new GenericEvent($entry));
-
-                    if ($entry instanceof DynamicEntry) {
-                        $entryIds[] = $entry->getId();
-                    }
                 }
 
                 $entries = $parser->toArray($entries);
@@ -186,7 +166,7 @@ class ClientDecorator implements LoggerAwareInterface
                     ['cacheId' => $cacheId, 'entries' => $entries, 'parser' => get_class($parser)]
                 );
             } catch (RequestException $exception) {
-                $this->getLogger()->critical(
+                $this->logger->critical(
                     'Elements could not be loaded.',
                     ['cacheId' => $cacheId, 'exception' => $exception, 'parser' => get_class($parser)]
                 );
@@ -206,18 +186,20 @@ class ClientDecorator implements LoggerAwareInterface
 
     /**
      * Returns (and caches) the entry with the given id.
+     *
      * @param string $id
+     * @param ResponseParserInterface|null $parser
      * @return array
      */
     public function getEntry(string $id, ResponseParserInterface $parser = null): array
     {
-        $cache = $this->getCache();
+        $cache = $this->cache;
         $cacheItem = $cache->getItem($id);
         $entry = [];
-        $logger = $this->getLogger();
+        $logger = $this->logger;
 
         if (!$parser) {
-            $parser = $this->getDefaultResponseParser();
+            $parser = $this->defaultResponseParser;
         }
 
         if ($cacheHit = $cacheItem->isHit()) {
@@ -231,9 +213,10 @@ class ClientDecorator implements LoggerAwareInterface
                     ['id' => $id, 'parser' => get_class($parser)]
                 );
 
-                $entry = $this->getClient()->getEntry($id);
+                $entry = $this->client->getEntry($id);
+                $entryIds = $this->getEntryIds($entry);
 
-                $this->getEventDispatcher()->dispatch(ClientEvents::LOAD_CONTENTFUL_ENTRY, new GenericEvent($entry));
+                $this->eventDispatcher->dispatch(ClientEvents::LOAD_CONTENTFUL_ENTRY, new GenericEvent($entry));
 
                 $entry = $parser->toArray($entry);
 
@@ -242,8 +225,8 @@ class ClientDecorator implements LoggerAwareInterface
                     ['id' => $id, 'entry' => $entry, 'parser' => get_class($parser)]
                 );
 
-                if (method_exists($cacheItem, 'tag')) {
-                    $cacheItem->tag($id);
+                if (array_filter($entryIds) && method_exists($cacheItem, 'tag')) {
+                    $cacheItem->tag($entryIds);
                 }
 
                 $cache->save($cacheItem->set($entry));
@@ -259,68 +242,30 @@ class ClientDecorator implements LoggerAwareInterface
     }
 
     /**
-     * Returns the event dispatcher.
-     * @return EventDispatcherInterface
+     * Returns the entry id for the given contentful result.
+     *
+     * @param DynamicEntry|ResourceArray|array|mixed $contentfulResult The result for a contentful query.
+     * @return array
      */
-    private function getEventDispatcher(): EventDispatcherInterface
+    private function getEntryIds($contentfulResult): array
     {
-        return $this->eventDispatcher;
-    }
+        $ids = [];
 
-    /**
-     * Returns the used logger.
-     * @return LoggerInterface
-     */
-    private function getLogger(): LoggerInterface
-    {
-        return $this->logger;
-    }
+        if ($contentfulResult instanceof DynamicEntry) {
+            $ids[] = $contentfulResult->getId();
+            $fields = $contentfulResult->getContentType()->getFields() ?: [];
 
-    /**
-     * Sets the possible cache for the results.
-     * @param CacheItemPoolInterface $cache
-     * @return ClientDecorator
-     */
-    private function setCache(CacheItemPoolInterface $cache): ClientDecorator
-    {
-        $this->cache = $cache;
+            array_walk($fields, function (ContentTypeField $field) use ($contentfulResult, &$ids) {
+                $ids = array_merge($ids, $this->getEntryIds($contentfulResult->{'get' . ucfirst($field->getId())}()));
+            });
+        } else {
+            if ((is_array($contentfulResult)) || ($contentfulResult instanceof Traversable)) {
+                foreach ($contentfulResult as $entry) {
+                    $ids = array_merge($ids, $this->getEntryIds($entry));
+                }
+            }
+        }
 
-        return $this;
-    }
-
-    /**
-     * Sets the used client.
-     * @param Client $client
-     * @return ClientDecorator
-     */
-    private function setClient(Client $client): ClientDecorator
-    {
-        $this->client = $client;
-
-        return $this;
-    }
-
-    /**
-     * Sets the default response parser.
-     * @param ResponseParserInterface $defaultResponseParser
-     * @return ClientDecorator
-     */
-    private function setDefaultResponseParser(ResponseParserInterface $defaultResponseParser): ClientDecorator
-    {
-        $this->defaultResponseParser = $defaultResponseParser;
-
-        return $this;
-    }
-
-    /**
-     * Sets the event dispatcher.
-     * @param EventDispatcherInterface $eventDispatcher
-     * @return ClientDecorator
-     */
-    private function setEventDispatcher(EventDispatcherInterface $eventDispatcher): ClientDecorator
-    {
-        $this->eventDispatcher = $eventDispatcher;
-
-        return $this;
+        return array_unique($ids);
     }
 }
