@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BestIt\ContentfulBundle\Tests;
 
 use BestIt\ContentfulBundle\ClientDecoratorAwareTrait;
@@ -7,22 +9,22 @@ use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Class ClientDecoratorTest
+ * Class ClientDecoratorTest.
+ *
  * @author blange <lange@bestit-online.de>
- * @category Tests
- * @package BestIt\ContentfulBundle
- * @version $id$
+ * @package BestIt\ContentfulBundle\Tests
  */
-class ClientDecoratorTest extends TestCase
+class ClientDecoratorAwareTraitTest extends TestCase
 {
     /**
-     * The client decorator aware trait.
-     * @var ClientDecoratorAwareTrait
+     * @var ClientDecoratorAwareTrait|null The client decorator aware trait.
      */
     private $fixture = null;
 
     /**
      * Sets up the test.
+     *
+     * @reteurn void
      */
     protected function setUp()
     {
@@ -31,6 +33,7 @@ class ClientDecoratorTest extends TestCase
 
     /**
      * Checks the getter and setter.
+     *
      * @return void
      */
     public function testGetAndSetClientDecorator()
