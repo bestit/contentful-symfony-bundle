@@ -119,7 +119,7 @@ class ClientDecorator implements LoggerAwareInterface
      */
     private function getCacheTags($contentfulResult): array
     {
-        $tags = [ContentfulSlugMatcher::COLLECTION_CACHE_KEY];
+        $tags = [];
 
         if ($contentfulResult instanceof DynamicEntry) {
             $tags[] = $contentfulResult->getId();
