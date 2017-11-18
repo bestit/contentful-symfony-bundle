@@ -31,14 +31,14 @@ trait ClientDecoratorAwareTrait
 
     /**
      * Sets the client decorator.
-     * 
+     *
      * @param ClientDecorator $clientDecorator
      * @return $this
      */
     public function setClientDecorator(ClientDecorator $clientDecorator): self
     {
         $this->clientDecorator = $clientDecorator;
-        
+
         return $this;
     }
 }

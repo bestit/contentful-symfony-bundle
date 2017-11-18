@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BestIt\ContentfulBundle\Routing;
 
+use BestIt\ContentfulBundle\ClientDecoratorAwareTrait;
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
 use Contentful\Delivery\Query;
 use Contentful\Exception\NotFoundException;
@@ -16,30 +19,42 @@ use Symfony\Component\Routing\Matcher\RequestMatcherInterface;
 use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
+use function array_key_exists;
+use function array_map;
+use function array_walk;
+use function current;
+use function method_exists;
+use function sha1;
+use function strlen;
 
 /**
  * "Router" to match against the contentful slugs.
+ *
  * @author lange <lange@bestit-online.de>
  * @package BestIt\ContentfulBundle\Routing
- * @version $id$
  */
 class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInterface
 {
+    use ClientDecoratorAwareTrait;
+    use RoutableTypesAwareTrait;
+
     /**
-     * The possible cache class.
-     * @var CacheItemPoolInterface
+     * @var string The used cache key for creating and tagging the route collection.
+     */
+    const COLLECTION_CACHE_KEY = 'route_collection';
+
+    /**
+     * @var string The prefix for the route-hash to create a cache key.
+     */
+    const ROUTE_CACHE_KEY_PREFIX = 'contentful-routing-';
+
+    /**
+     * @var CacheItemPoolInterface The possible cache class.
      */
     private $cache;
 
     /**
-     * The contentful client.
-     * @var ClientDecorator
-     */
-    private $client;
-
-    /**
-     * The loaded url collection.
-     * @var void|RouteCollection
+     * @var void|RouteCollection The loaded url collection.
      */
     protected $collection = null;
 
@@ -47,30 +62,19 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
      * The request context.
      *
      * Filled by the setter.
+     *
      * @var RequestContext|void
      */
     private $context;
 
     /**
-     * What is the id of the field with the controller info.
-     * @var string
+     * @var string What is the id of the field with the controller info.
      */
     private $controllerField;
 
     /**
-     * The ids of the routable types.
-     * @var array
-     */
-    private $routableTypes = [];
-
-    /**
-     * The name of the field with the slug.
-     * @var string
-     */
-    private $slugField;
-
-    /**
      * ContentfulSlugMatcher constructor.
+     *
      * @param CacheItemPoolInterface $cache
      * @param ClientDecorator $client
      * @param string $controllerField
@@ -82,9 +86,10 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
         string $controllerField,
         string $slugField
     ) {
+        $this->cache = $cache;
+
         $this
-            ->setCache($cache)
-            ->setClient($client)
+            ->setClientDecorator($client)
             ->setControllerField($controllerField)
             ->setSlugField($slugField);
     }
@@ -128,25 +133,8 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
     }
 
     /**
-     * Returns the cache if there is one.
-     * @return void|CacheItemPoolInterface
-     */
-    protected function getCache()
-    {
-        return $this->cache;
-    }
-
-    /**
-     * Returns the client.
-     * @return ClientDecorator
-     */
-    public function getClient(): ClientDecorator
-    {
-        return $this->client;
-    }
-
-    /**
      * Gets the request context.
+     *
      * @return RequestContext The context
      */
     public function getContext(): RequestContext
@@ -156,6 +144,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
 
     /**
      * Returns the id of the field with the logica name of the controller.
+     *
      * @return string
      */
     public function getControllerField(): string
@@ -165,23 +154,24 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
 
     /**
      * Returns a matching entry for the request uri.
+     *
      * @param string $requestUri
-     * @return array|void
+     * @return array|null
+     * @todo Add Support for query. Add helper to create the cache key.
      */
-    protected function getMatchingEntry(string $requestUri)
+    private function getMatchingEntry(string $requestUri)
     {
         if (strlen($requestUri) > 0 && $requestUri[0] !== '/') {
             $requestUri = '/' . $requestUri;
         }
 
-        $cache = $this->getCache();
-        $cacheHit = $cache->getItem($cacheId = sha1($requestUri));
+        $cache = $this->cache;
+        $cacheHit = $cache->getItem(self::ROUTE_CACHE_KEY_PREFIX . sha1($requestUri));
+        $entry = null;
 
         if (!$cacheHit->isHit()) {
-            $entry = null;
-
             foreach ($this->getRoutableTypes() as $routableType) {
-                $entries = $this->client->getEntries(function (Query $query) use ($requestUri, $routableType) {
+                $entries = $this->clientDecorator->getEntries(function (Query $query) use ($requestUri, $routableType) {
                     $query
                         ->setContentType($routableType)
                         ->setLimit(1)
@@ -194,25 +184,15 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
                 }
             }
 
-            if ($entry) {
-                $cache->save($cacheHit->set($entry));
-            }
+            $cache->save($cacheHit->set($entry));
         }
 
         return $cacheHit->get();
     }
 
     /**
-     * Returns the ids of the routable types.
-     * @return array
-     */
-    public function getRoutableTypes(): array
-    {
-        return $this->routableTypes;
-    }
-
-    /**
      * Gets the RouteCollection instance associated with this Router.
+     *
      * @return RouteCollection A RouteCollection instance
      */
     public function getRouteCollection(): RouteCollection
@@ -226,6 +206,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
 
     /**
      * Returns the route name for the given contentful entry.
+     *
      * @param array $entry
      * @return string
      */
@@ -235,23 +216,15 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
     }
 
     /**
-     * Returns the name of the slug field.
-     * @return string
-     */
-    public function getSlugField(): string
-    {
-        return $this->slugField;
-    }
-
-    /**
      * Loads the route collection.
+     *
      * @return void
-     * @todo Add a logger and log the exception.
+     * @todo Add a logger and log the exception. Add Cache-Tags or add this tag to every cache entry.
      */
     protected function loadRouteCollection()
     {
-        $cache = $this->getCache();
-        $cacheHit = $cache->getItem('route_collection');
+        $cache = $this->cache;
+        $cacheHit = $cache->getItem(self::COLLECTION_CACHE_KEY);
 
         if ($cacheHit->isHit()) {
             $this->collection = $cacheHit->get();
@@ -260,7 +233,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
 
             array_map(function (string $routableType) {
                 try {
-                    $entries = $this->client->getEntries(function (Query $query) use ($routableType) {
+                    $entries = $this->clientDecorator->getEntries(function (Query $query) use ($routableType) {
                         $query->setContentType($routableType);
                         $query->setLimit(1000);
                     });
@@ -274,6 +247,12 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
                     throw $exception;
                 }
             }, $this->getRoutableTypes());
+
+            if (method_exists($cacheHit, 'tag')) {
+                // It is easier to add this tag to every entry, then to try to fetch every id, for every possible
+                // contentful entry.
+                $cacheHit->tag(self::COLLECTION_CACHE_KEY);
+            }
 
             $cache->save($cacheHit->set($this->collection));
         }
@@ -313,31 +292,8 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
     }
 
     /**
-     * Sets the possible cache for the results.
-     * @param CacheItemPoolInterface $cache
-     * @return ContentfulSlugMatcher
-     */
-    protected function setCache(CacheItemPoolInterface $cache): ContentfulSlugMatcher
-    {
-        $this->cache = $cache;
-
-        return $this;
-    }
-
-    /**
-     * Sets the client.
-     * @param ClientDecorator $client
-     * @return ContentfulSlugMatcher
-     */
-    protected function setClient(ClientDecorator $client): ContentfulSlugMatcher
-    {
-        $this->client = $client;
-
-        return $this;
-    }
-
-    /**
      * Sets the request context.
+     *
      * @param RequestContext $context The context
      * @return ContentfulSlugMatcher
      */
@@ -350,36 +306,13 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
 
     /**
      * Sets the id of the field with the logica name of the controller.
+     *
      * @param string $controllerField
      * @return ContentfulSlugMatcher
      */
     protected function setControllerField(string $controllerField): ContentfulSlugMatcher
     {
         $this->controllerField = $controllerField;
-
-        return $this;
-    }
-
-    /**
-     * Sets the ids of the routable types.
-     * @param array $routableTypes
-     * @return ContentfulSlugMatcher
-     */
-    public function setRoutableTypes(array $routableTypes): ContentfulSlugMatcher
-    {
-        $this->routableTypes = $routableTypes;
-
-        return $this;
-    }
-
-    /**
-     * Sets the name of the slug field.
-     * @param string $slugField
-     * @return ContentfulSlugMatcher
-     */
-    protected function setSlugField(string $slugField): ContentfulSlugMatcher
-    {
-        $this->slugField = $slugField;
 
         return $this;
     }
