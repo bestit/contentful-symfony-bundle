@@ -166,7 +166,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
         }
 
         $cache = $this->cache;
-        $cacheHit = $cache->getItem(self::ROUTE_CACHE_KEY_PREFIX . sha1($requestUri));
+        $cacheHit = $cache->getItem($cacheId = self::ROUTE_CACHE_KEY_PREFIX . sha1($requestUri));
         $entry = null;
 
         if (!$cacheHit->isHit()) {
@@ -182,6 +182,10 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
                     $entry = current($entries);
                     break;
                 }
+            }
+
+            if (method_exists($cacheHit, 'tag')) {
+                $cacheHit->tag([$cacheId]);
             }
 
             $cache->save($cacheHit->set($entry));
