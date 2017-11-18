@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BestIt\ContentfulBundle\Tests\Routing;
 
 use BestIt\ContentfulBundle\Routing\ContentfulSlugMatcher;
@@ -15,32 +17,16 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Matcher\RequestMatcherInterface;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
+use function uniqid;
 
 /**
  * Checks the router for the contentful bundle.
+ *
  * @author blange <lange@bestit-online.de>
  * @package BestIt\ContentfulBundle\Tests\Routing
  */
 class ContentfulSlugMatcherTest extends TestCase
 {
-    /**
-     * The used client.
-     * @var ClientDecorator|null|PHPUnit_Framework_MockObject_MockObject
-     */
-    private $client;
-
-    /**
-     * The tested class.
-     * @var ContentfulSlugMatcher|null
-     */
-    private $fixture;
-
-    /**
-     * The used slug field.
-     * @var string|null
-     */
-    private $slugField;
-
     /**
      * The cache
      *
@@ -49,7 +35,23 @@ class ContentfulSlugMatcherTest extends TestCase
     private $cache;
 
     /**
+     * @var ClientDecorator|null|PHPUnit_Framework_MockObject_MockObject The used client.
+     */
+    private $client;
+
+    /**
+     * @var ContentfulSlugMatcher|null The tested class.
+     */
+    private $fixture;
+
+    /**
+     * @var string|null The used slug field.
+     */
+    private $slugField;
+
+    /**
      * Sets up the test.
+     *
      * @return void
      */
     protected function setUp()
@@ -64,6 +66,7 @@ class ContentfulSlugMatcherTest extends TestCase
 
     /**
      * Checks if the getter and setter change the routable types.
+     *
      * @return void
      */
     public function testGetAndSetRoutableTypes()
@@ -74,7 +77,33 @@ class ContentfulSlugMatcherTest extends TestCase
     }
 
     /**
+     * Checks if the route collection use cache
+     *
+     * @return void
+     */
+    public function testGetRouteCollectionCache()
+    {
+        $this->fixture->setRoutableTypes([$type1 = uniqid(), $type2 = uniqid()]);
+
+        $this->client
+            ->expects(static::never())
+            ->method('getEntries');
+
+        $this->cache
+            ->expects(static::once())
+            ->method('getItem')
+            ->with('route_collection')
+            ->willReturn($cacheItem = $this->createMock(CacheItemInterface::class));
+
+        $cacheItem->method('isHit')->willReturn(true);
+        $cacheItem->method('get')->willReturn($collection = new RouteCollection());
+
+        static::assertSame($collection, $this->fixture->getRouteCollection());
+    }
+
+    /**
      * Checks if the client exception is skipped and the rest of the entries are registered normally.
+     *
      * @return void
      */
     public function testGetRouteCollectionSkipOnNotFoundException()
@@ -138,32 +167,8 @@ class ContentfulSlugMatcherTest extends TestCase
     }
 
     /**
-     * Checks if the route collection use cache
-     *
-     * @return void
-     */
-    public function testGetRouteCollectionCache()
-    {
-        $this->fixture->setRoutableTypes([$type1 = uniqid(), $type2 = uniqid()]);
-
-        $this->client
-            ->expects(static::never())
-            ->method('getEntries');
-
-        $this->cache
-            ->expects(static::once())
-            ->method('getItem')
-            ->with('route_collection')
-            ->willReturn($cacheItem = $this->createMock(CacheItemInterface::class));
-
-        $cacheItem->method('isHit')->willReturn(true);
-        $cacheItem->method('get')->willReturn($collection = new RouteCollection());
-
-        static::assertSame($collection, $this->fixture->getRouteCollection());
-    }
-
-    /**
      * Checks the interfaces of the class.
+     *
      * @return void
      */
     public function testInterfaces()

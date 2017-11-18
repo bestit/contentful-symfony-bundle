@@ -6,6 +6,8 @@ namespace BestIt\ContentfulBundle\Service\Delivery;
 
 use BestIt\ContentfulBundle\ClientEvents;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
+use BestIt\ContentfulBundle\Routing\ContentfulSlugMatcher;
+use BestIt\ContentfulBundle\Routing\RoutableTypesAwareTrait;
 use Contentful\Delivery\Asset;
 use Contentful\Delivery\Client;
 use Contentful\Delivery\ContentTypeField;
@@ -39,6 +41,7 @@ use function ucfirst;
 class ClientDecorator implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
+    use RoutableTypesAwareTrait;
 
     /**
      * @var CacheItemPoolInterface The possible cache class.
@@ -107,6 +110,43 @@ class ClientDecorator implements LoggerAwareInterface
     }
 
     /**
+     * Returns the cache keys for every entry.
+     *
+     * This method adds the default tags to every tag collection.
+     *
+     * @param DynamicEntry|ResourceArray|array|mixed $contentfulResult The result for a contentful query.
+     * @return array
+     */
+    private function getCacheTags($contentfulResult): array
+    {
+        $tags = [ContentfulSlugMatcher::COLLECTION_CACHE_KEY];
+
+        if ($contentfulResult instanceof DynamicEntry) {
+            $tags[] = $contentfulResult->getId();
+            $contentType = $contentfulResult->getContentType();
+            $fields = $contentType->getFields() ?: [];
+
+            if ((in_array($contentType->getId(), $this->getRoutableTypes()) &&
+                ($slugFieldName = $this->getSlugField()) &&
+                ($slugField = $contentfulResult->{'get' . ucfirst($slugFieldName)}()))) {
+                $tags[] = ContentfulSlugMatcher::ROUTE_CACHE_KEY_PREFIX . sha1($slugField);
+            }
+
+            array_walk($fields, function (ContentTypeField $field) use ($contentfulResult, &$tags) {
+                $tags = array_merge($tags, $this->getCacheTags($contentfulResult->{'get' . ucfirst($field->getId())}()));
+            });
+        } else {
+            if ((is_array($contentfulResult)) || ($contentfulResult instanceof Traversable)) {
+                foreach ($contentfulResult as $entry) {
+                    $tags = array_merge($tags, $this->getCacheTags($entry));
+                }
+            }
+        }
+
+        return array_filter(array_unique($tags));
+    }
+
+    /**
      * Returns a list of clients.
      *
      * @param callable $buildQuery
@@ -151,7 +191,7 @@ class ClientDecorator implements LoggerAwareInterface
 
                 /** @var ResourceArray $entries */
                 $entries = $this->client->getEntries($query);
-                $entryIds = $this->getEntryIds($entries);
+                $cacheTags = $this->getCacheTags($entries);
 
                 $dispatcher->dispatch(ClientEvents::LOAD_CONTENTFUL_ENTRIES, new GenericEvent($entries));
 
@@ -174,8 +214,8 @@ class ClientDecorator implements LoggerAwareInterface
         }
 
         if ($cacheId && !$cacheHit && $entries !== null) {
-            if (array_filter($entryIds) && method_exists($cacheItem, 'tag')) {
-                $cacheItem->tag($entryIds);
+            if ($cacheTags && method_exists($cacheItem, 'tag')) {
+                $cacheItem->tag($cacheTags);
             }
 
             $cache->save($cacheItem->set($entries));
@@ -214,7 +254,7 @@ class ClientDecorator implements LoggerAwareInterface
                 );
 
                 $entry = $this->client->getEntry($id);
-                $entryIds = $this->getEntryIds($entry);
+                $entryTags = $this->getCacheTags($entry);
 
                 $this->eventDispatcher->dispatch(ClientEvents::LOAD_CONTENTFUL_ENTRY, new GenericEvent($entry));
 
@@ -225,8 +265,8 @@ class ClientDecorator implements LoggerAwareInterface
                     ['id' => $id, 'entry' => $entry, 'parser' => get_class($parser)]
                 );
 
-                if (array_filter($entryIds) && method_exists($cacheItem, 'tag')) {
-                    $cacheItem->tag($entryIds);
+                if ($entryTags && method_exists($cacheItem, 'tag')) {
+                    $cacheItem->tag($entryTags);
                 }
 
                 $cache->save($cacheItem->set($entry));
@@ -239,33 +279,5 @@ class ClientDecorator implements LoggerAwareInterface
         }
 
         return $entry;
-    }
-
-    /**
-     * Returns the entry id for the given contentful result.
-     *
-     * @param DynamicEntry|ResourceArray|array|mixed $contentfulResult The result for a contentful query.
-     * @return array
-     */
-    private function getEntryIds($contentfulResult): array
-    {
-        $ids = [];
-
-        if ($contentfulResult instanceof DynamicEntry) {
-            $ids[] = $contentfulResult->getId();
-            $fields = $contentfulResult->getContentType()->getFields() ?: [];
-
-            array_walk($fields, function (ContentTypeField $field) use ($contentfulResult, &$ids) {
-                $ids = array_merge($ids, $this->getEntryIds($contentfulResult->{'get' . ucfirst($field->getId())}()));
-            });
-        } else {
-            if ((is_array($contentfulResult)) || ($contentfulResult instanceof Traversable)) {
-                foreach ($contentfulResult as $entry) {
-                    $ids = array_merge($ids, $this->getEntryIds($entry));
-                }
-            }
-        }
-
-        return array_unique($ids);
     }
 }
