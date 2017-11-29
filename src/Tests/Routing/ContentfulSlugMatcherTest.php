@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BestIt\ContentfulBundle\Tests\Routing;
 
+use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use BestIt\ContentfulBundle\Routing\ContentfulSlugMatcher;
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
 use Contentful\Delivery\ContentType;
@@ -60,7 +61,8 @@ class ContentfulSlugMatcherTest extends TestCase
             $this->cache = $this->createMock(CacheItemPoolInterface::class),
             $this->client = $this->createMock(ClientDecorator::class),
             uniqid('', true),
-            $this->slugField = uniqid('', true)
+            $this->slugField = uniqid('', true),
+            $this->createMock(ResponseParserInterface::class)
         );
     }
 

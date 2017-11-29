@@ -133,7 +133,8 @@ class ClientDecorator implements LoggerAwareInterface
             }
 
             array_walk($fields, function (ContentTypeField $field) use ($contentfulResult, &$tags) {
-                $tags = array_merge($tags, $this->getCacheTags($contentfulResult->{'get' . ucfirst($field->getId())}()));
+                $tags = array_merge($tags,
+                    $this->getCacheTags($contentfulResult->{'get' . ucfirst($field->getId())}()));
             });
         } else {
             if ((is_array($contentfulResult)) || ($contentfulResult instanceof Traversable)) {
@@ -191,7 +192,10 @@ class ClientDecorator implements LoggerAwareInterface
 
                 /** @var ResourceArray $entries */
                 $entries = $this->client->getEntries($query);
-                $cacheTags = $this->getCacheTags($entries);
+
+                if ($cacheId) {
+                    $cacheTags = $this->getCacheTags($entries);
+                }
 
                 $dispatcher->dispatch(ClientEvents::LOAD_CONTENTFUL_ENTRIES, new GenericEvent($entries));
 

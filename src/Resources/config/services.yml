@@ -40,3 +40,9 @@ services:
         public:    false
         tags:
             - { name: twig.extension }
+
+    best_it_contentful.routing.route_collection_response_parser:
+        class: BestIt\ContentfulBundle\Routing\RouteCollectionResponseParser
+        public: false
+        arguments:
+            - '%best_it_contentful.routing_field%'

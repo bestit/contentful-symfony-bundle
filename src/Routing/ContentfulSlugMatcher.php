@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BestIt\ContentfulBundle\Routing;
 
 use BestIt\ContentfulBundle\ClientDecoratorAwareTrait;
+use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
 use Contentful\Delivery\Query;
 use Contentful\Exception\NotFoundException;
@@ -12,6 +13,8 @@ use DomainException;
 use Exception;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Exception\InvalidParameterException;
+use Symfony\Component\Routing\Exception\MissingMandatoryParametersException;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -73,20 +76,36 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
     private $controllerField;
 
     /**
+     * @var int How many levels should be included in contentful if a route machtes?
+     */
+    private $includeLevelForMatching;
+
+    /**
+     * @var ResponseParserInterface The response parser specially for the route collection.
+     */
+    private $routeCollectionResponseParser;
+
+    /**
      * ContentfulSlugMatcher constructor.
      *
      * @param CacheItemPoolInterface $cache
      * @param ClientDecorator $client
      * @param string $controllerField
      * @param string $slugField
+     * @param ResponseParserInterface $routeCollectionResponseParser The response parser specially for the route coll.
+     * @param int $includeLevelForMatching How many levels should be included in contentful if a route machtes?
      */
     public function __construct(
         CacheItemPoolInterface $cache,
         ClientDecorator $client,
         string $controllerField,
-        string $slugField
+        string $slugField,
+        ResponseParserInterface $routeCollectionResponseParser,
+        int $includeLevelForMatching = 10
     ) {
         $this->cache = $cache;
+        $this->includeLevelForMatching = $includeLevelForMatching;
+        $this->routeCollectionResponseParser = $routeCollectionResponseParser;
 
         $this
             ->setClientDecorator($client)
@@ -174,6 +193,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
                 $entries = $this->clientDecorator->getEntries(function (Query $query) use ($requestUri, $routableType) {
                     $query
                         ->setContentType($routableType)
+                        ->setInclude($this->includeLevelForMatching)
                         ->setLimit(1)
                         ->where('fields.' . $this->getSlugField(), $requestUri);
                 });
@@ -223,7 +243,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
      * Loads the route collection.
      *
      * @return void
-     * @todo Add a logger and log the exception. Add Cache-Tags or add this tag to every cache entry.
+     * @todo Add a logger and log the exception.
      */
     protected function loadRouteCollection()
     {
@@ -237,13 +257,18 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
 
             array_map(function (string $routableType) {
                 try {
-                    $entries = $this->clientDecorator->getEntries(function (Query $query) use ($routableType) {
-                        $query->setContentType($routableType);
-                        $query->setLimit(1000);
-                    });
+                    $entries = $this->clientDecorator->getEntries(
+                        function (Query $query) use ($routableType) {
+                            $query->setContentType($routableType);
+                            $query->setLimit(1000);
+                        },
+                        '',
+                        $this->routeCollectionResponseParser
+                    );
 
                     array_walk($entries, function ($entry) {
-                        $this->collection->add($this->getRouteNameForEntry($entry), new Route($entry[$this->slugField]));
+                        $this->collection->add($this->getRouteNameForEntry($entry),
+                            new Route($entry[$this->slugField]));
                     });
                 } catch (NotFoundException $clientException) {
                     // Do nothing at the moment with an error by the contentful sdk
