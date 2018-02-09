@@ -57,4 +57,12 @@ class MarkdownExtensionTest extends TestCase
     {
         static::assertSame('<h1>Headline</h1>', $this->fixture->parseMarkdown('#Headline'));
     }
+
+    /**
+     * Sometimes contentful sends empty fields as null, so we need a test for that
+     */
+    public function testParseMarkdownWithNull()
+    {
+        static::assertSame('', $this->fixture->parseMarkdown(null));
+    }
 }
