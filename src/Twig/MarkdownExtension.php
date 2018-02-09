@@ -71,10 +71,10 @@ class MarkdownExtension extends Twig_Extension
 
     /**
      * Returns the rendered html.
-     * @param string $content
+     * @param mixed $content
      * @return string
      */
-    public function parseMarkdown(string $content): string
+    public function parseMarkdown($content): string
     {
         return $content ? $this->getParser()->toHtml($content) : '';
     }
