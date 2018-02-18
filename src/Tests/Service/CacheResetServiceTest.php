@@ -1,19 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BestIt\ContentfulBundle\Tests\Service;
 
+use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\Service\CacheResetService;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
 use stdClass;
+use Symfony\Component\Cache\Adapter\TagAwareAdapter;
+use function uniqid;
 
 /**
  * Tests the service for cache resetting.
+ *
  * @author lange <lange@bestit-online.de>
- * @category Tests
- * @package BestIt\ContentfulBundle
- * @subpackage Service
- * @version $id$
+ * @package BestIt\ContentfulBundle\Tests\Service
  */
 class CacheResetServiceTest extends TestCase
 {
@@ -24,12 +27,16 @@ class CacheResetServiceTest extends TestCase
     public function testResetEntryCacheSuccess()
     {
         $fixture = new CacheResetService(
-            $cache = $this->createMock(CacheItemPoolInterface::class),
+            $cache = $this->createMock(TagAwareAdapter::class),
             $ids = [uniqid()],
             false
         );
 
         $cache
+            ->expects(static::never())
+            ->method('clear');
+
+        $cache
             ->expects(static::once())
             ->method('deleteItem')
             ->with($id = uniqid());
@@ -46,48 +53,9 @@ class CacheResetServiceTest extends TestCase
             ->willReturn(true);
 
         $cache
-            ->expects(static::never())
-            ->method('clear');
-
-        static::assertTrue($fixture->resetEntryCache((object) [
-            'sys' => (object) [
-                'id' => $id,
-                'type' => 'Entry'
-            ]
-        ]));
-    }
-
-    /**
-     * Checks that the whole content cache is cleared if configured.
-     * @return void
-     */
-    public function testThatWholeCacheIsCleared()
-    {
-        $fixture = new CacheResetService(
-            $cache = $this->createMock(CacheItemPoolInterface::class),
-            $ids = [uniqid()],
-            true
-        );
-
-        $cache
-            ->expects(static::never())
-            ->method('deleteItem')
-            ->with($id = uniqid());
-
-        $cache
-            ->expects(static::never())
-            ->method('deleteItems')
-            ->with($ids);
-
-        $cache
-            ->expects(static::never())
-            ->method('hasItem')
-            ->with($id)
-            ->willReturn(true);
-
-        $cache
             ->expects(static::once())
-            ->method('clear');
+            ->method('invalidateTags')
+            ->with(['route_collection', $id]);
 
         static::assertTrue($fixture->resetEntryCache((object) [
             'sys' => (object) [
@@ -114,5 +82,45 @@ class CacheResetServiceTest extends TestCase
             ->method('hasItem');
 
         static::assertFalse($fixture->resetEntryCache(new stdClass()));
+    }
+
+    /**
+     * Checks that the whole content cache is cleared if configured.
+     * @return void
+     */
+    public function testThatWholeCacheIsCleared()
+    {
+        $fixture = new CacheResetService(
+            $cache = $this->createMock(CacheItemPoolInterface::class),
+            $ids = [uniqid()],
+            true
+        );
+
+        $cache
+            ->expects(static::once())
+            ->method('clear');
+
+        $cache
+            ->expects(static::never())
+            ->method('deleteItem')
+            ->with($id = uniqid());
+
+        $cache
+            ->expects(static::never())
+            ->method('deleteItems')
+            ->with($ids);
+
+        $cache
+            ->expects(static::never())
+            ->method('hasItem')
+            ->with($id)
+            ->willReturn(true);
+
+        static::assertTrue($fixture->resetEntryCache((object) [
+            'sys' => (object) [
+                'id' => $id,
+                'type' => 'Entry'
+            ]
+        ]));
     }
 }
