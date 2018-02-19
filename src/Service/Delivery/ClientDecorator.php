@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace BestIt\ContentfulBundle\Service\Delivery;
 
+use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\ClientEvents;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
-use BestIt\ContentfulBundle\Routing\ContentfulSlugMatcher;
-use BestIt\ContentfulBundle\Routing\RoutableTypesAwareTrait;
 use Contentful\Delivery\Asset;
 use Contentful\Delivery\Client;
-use Contentful\Delivery\ContentTypeField;
-use Contentful\Delivery\DynamicEntry;
 use Contentful\Delivery\Query;
 use Contentful\ResourceArray;
 use GuzzleHttp\Exception\RequestException;
@@ -21,15 +18,9 @@ use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
-use Traversable;
-use function array_filter;
-use function array_merge;
-use function array_walk;
 use function get_class;
-use function is_array;
 use function method_exists;
 use function sprintf;
-use function ucfirst;
 
 /**
  * Extends the logics for the contentful delivery.
@@ -40,8 +31,8 @@ use function ucfirst;
  */
 class ClientDecorator implements LoggerAwareInterface
 {
+    use CacheTagsGetterTrait;
     use LoggerAwareTrait;
-    use RoutableTypesAwareTrait;
 
     /**
      * @var CacheItemPoolInterface The possible cache class.
@@ -107,44 +98,6 @@ class ClientDecorator implements LoggerAwareInterface
     protected function getBaseQuery(): Query
     {
         return new Query();
-    }
-
-    /**
-     * Returns the cache keys for every entry.
-     *
-     * This method adds the default tags to every tag collection.
-     *
-     * @param DynamicEntry|ResourceArray|array|mixed $contentfulResult The result for a contentful query.
-     * @return array
-     */
-    private function getCacheTags($contentfulResult): array
-    {
-        $tags = [];
-
-        if ($contentfulResult instanceof DynamicEntry) {
-            $tags[] = $contentfulResult->getId();
-            $contentType = $contentfulResult->getContentType();
-            $fields = $contentType->getFields() ?: [];
-
-            if ((in_array($contentType->getId(), $this->getRoutableTypes()) &&
-                ($slugFieldName = $this->getSlugField()) &&
-                ($slugField = $contentfulResult->{'get' . ucfirst($slugFieldName)}()))) {
-                $tags[] = ContentfulSlugMatcher::ROUTE_CACHE_KEY_PREFIX . sha1($slugField);
-            }
-
-            array_walk($fields, function (ContentTypeField $field) use ($contentfulResult, &$tags) {
-                $tags = array_merge($tags,
-                    $this->getCacheTags($contentfulResult->{'get' . ucfirst($field->getId())}()));
-            });
-        } else {
-            if ((is_array($contentfulResult)) || ($contentfulResult instanceof Traversable)) {
-                foreach ($contentfulResult as $entry) {
-                    $tags = array_merge($tags, $this->getCacheTags($entry));
-                }
-            }
-        }
-
-        return array_filter(array_unique($tags));
     }
 
     /**

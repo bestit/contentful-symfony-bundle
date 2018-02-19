@@ -9,10 +9,9 @@ use Symfony\Component\HttpKernel\DependencyInjection\Extension;
 
 /**
  * Loads the config for the contentful bundle.
+ *
  * @author lange <lange@bestit-online.de>
- * @package BestIt\ContentfulBundle
- * @subpackage DependencyInjection
- * @version $id$
+ * @package BestIt\ContentfulBundle\DependencyInjection
  */
 class BestItContentfulExtension extends Extension
 {
@@ -41,6 +40,11 @@ class BestItContentfulExtension extends Extension
         $container->setParameter(
             'best_it_contentful.complete_clear_on_webhook',
             $config['caching']['complete_clear_on_webhook'] ?? []
+        );
+
+        $container->setParameter(
+            'best_it_contentful.cache.parameter_against_routing_cache',
+            $config['caching']['parameter_against_routing_cache']
         );
 
         $container->setAlias(

@@ -23,9 +23,11 @@ services:
 
     best_it_contentful.delivery.response_parser.default:
         class: BestIt\ContentfulBundle\Delivery\SimpleResponseParser
+        public: false
 
     best_it_contentful.markdown.parser:
         class: BestIt\ContentfulBundle\Service\MarkdownParser
+        public: false
 
     best_it_contentful.contentful.twig_extension:
         class:     BestIt\ContentfulBundle\Twig\ContentfulExtension

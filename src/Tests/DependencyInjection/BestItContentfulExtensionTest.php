@@ -57,6 +57,7 @@ class BestItContentfulExtensionTest extends AbstractExtensionTestCase
         return [
             'caching' => [
                 'content' => $cacheService,
+                'parameter_against_routing_cache' => 'foobar',
                 'routing' => $cacheService,
             ]
         ];

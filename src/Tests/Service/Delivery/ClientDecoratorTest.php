@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace BestIt\ContentfulBundle\Tests\Service\Delivery;
 
+use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\ClientEvents;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
+use BestIt\ContentfulBundle\Tests\TestTraitsTrait;
 use Contentful\Delivery\Client;
 use Contentful\Delivery\ContentType;
 use Contentful\Delivery\ContentTypeField;
@@ -15,6 +17,7 @@ use Contentful\Delivery\Query;
 use Doctrine\Common\Cache\ArrayCache;
 use PHPUnit\Framework\TestCase;
 use PHPUnit_Framework_MockObject_MockObject;
+use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\Cache\Adapter\DoctrineAdapter;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
@@ -27,6 +30,8 @@ use Symfony\Component\EventDispatcher\GenericEvent;
  */
 class ClientDecoratorTest extends TestCase
 {
+    use TestTraitsTrait;
+
     /**
      * @var Client|PHPUnit_Framework_MockObject_MockObject|null The mocked client.
      */
@@ -40,7 +45,7 @@ class ClientDecoratorTest extends TestCase
     /**
      * @var ClientDecorator|null The tested class.
      */
-    private $fixture;
+    protected $fixture;
 
     /**
      * @var ResponseParserInterface|PHPUnit_Framework_MockObject_MockObject|null The used parser.
@@ -66,6 +71,16 @@ class ClientDecoratorTest extends TestCase
             [null],
             [$mockParser, $result]
         ];
+    }
+
+    /**
+     * Returns the names of the used traits.
+     *
+     * @return array
+     */
+    protected function getUsedTraitNames(): array
+    {
+        return [CacheTagsGetterTrait::class, LoggerAwareTrait::class];
     }
 
     /**
@@ -98,42 +113,6 @@ class ClientDecoratorTest extends TestCase
             ->willReturn($return = uniqid());
 
         static::assertSame($return, $this->fixture->getAsset($id));
-    }
-
-    /**
-     * Checks if the entry getter is cached and its response simplified.
-     *
-     * @param ResponseParserInterface $parser
-     * @return void
-     */
-    public function testGetEntryFull(ResponseParserInterface $parser = null)
-    {
-        if (!$parser) {
-            $this->parser
-                ->expects($this->once())
-                ->method('toArray')
-                ->with($mockEntry = $this->createMock(DynamicEntry::class))
-                ->willReturn($result = [uniqid()]);
-        }
-
-        $this->client
-            ->expects($this->once())
-            ->method('getEntry')
-            ->with($id = uniqid())
-            ->willReturn($mockEntry);
-
-        $mockEntry
-            ->method('getContentType')
-            ->willReturn($mockType = $this->createMock(ContentType::class));
-
-        $this->eventDispatcher
-            ->expects($this->once())
-            ->method('dispatch')
-            ->with(ClientEvents::LOAD_CONTENTFUL_ENTRY, $this->isInstanceOf(GenericEvent::class));
-
-        static::assertSame($result, $this->fixture->getEntry($id), 'The first response was not correct.');
-        static::assertSame($result, $this->fixture->getEntry($id),
-            'The second response should be cached and the same.');
     }
 
     /**
@@ -238,6 +217,42 @@ class ClientDecoratorTest extends TestCase
             $this->fixture->getEntries($callback),
             'The second response should be cached and the same.'
         );
+    }
+
+    /**
+     * Checks if the entry getter is cached and its response simplified.
+     *
+     * @param ResponseParserInterface $parser
+     * @return void
+     */
+    public function testGetEntryFull(ResponseParserInterface $parser = null)
+    {
+        if (!$parser) {
+            $this->parser
+                ->expects($this->once())
+                ->method('toArray')
+                ->with($mockEntry = $this->createMock(DynamicEntry::class))
+                ->willReturn($result = [uniqid()]);
+        }
+
+        $this->client
+            ->expects($this->once())
+            ->method('getEntry')
+            ->with($id = uniqid())
+            ->willReturn($mockEntry);
+
+        $mockEntry
+            ->method('getContentType')
+            ->willReturn($mockType = $this->createMock(ContentType::class));
+
+        $this->eventDispatcher
+            ->expects($this->once())
+            ->method('dispatch')
+            ->with(ClientEvents::LOAD_CONTENTFUL_ENTRY, $this->isInstanceOf(GenericEvent::class));
+
+        static::assertSame($result, $this->fixture->getEntry($id), 'The first response was not correct.');
+        static::assertSame($result, $this->fixture->getEntry($id),
+            'The second response should be cached and the same.');
     }
 
     /**

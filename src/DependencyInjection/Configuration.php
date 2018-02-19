@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BestIt\ContentfulBundle\DependencyInjection;
 
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
@@ -8,13 +10,17 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 
 /**
  * Configuration class for this bundle.
+ *
  * @author blange <lange@bestit-online.de>
- * @package BestIt\ContentfulBundle
- * @subpackage DependencyInjection
- * @version $id$
+ * @package BestIt\ContentfulBundle\DependencyInjection
  */
 class Configuration implements ConfigurationInterface
 {
+    /**
+     * Returns the node to config the validation of an contentful element.
+     *
+     * @return ArrayNodeDefinition
+     */
     protected function getValidationConfig(): ArrayNodeDefinition
     {
         $node = (new TreeBuilder())->root('validations');
@@ -48,6 +54,7 @@ class Configuration implements ConfigurationInterface
 
     /**
      * Adds the caching types to the contentful config.
+     *
      * @return ArrayNodeDefinition
      */
     protected function getCachingConfig(): ArrayNodeDefinition
@@ -55,6 +62,7 @@ class Configuration implements ConfigurationInterface
         $node = (new TreeBuilder())->root('caching');
 
         $node
+            ->addDefaultsIfNotSet()
             ->isRequired()
             ->children()
                 ->scalarNode('content')
@@ -62,12 +70,18 @@ class Configuration implements ConfigurationInterface
                     ->isRequired()
                     ->cannotBeEmpty()
                 ->end()
+                ->scalarNode('parameter_against_routing_cache')
+                    ->defaultValue('ignore-contentful-routing-cache')
+                    ->info(
+                        'If the requested url contains this query parameter, the routing cache will be ignored.'
+                    )
+                ->end()
                 ->scalarNode('routing')
                     ->info('Please provider your service id for caching contentful routings.')
                     ->isRequired()
                     ->cannotBeEmpty()
                 ->end()
-                    ->booleanNode('complete_clear_on_webhook')
+                ->booleanNode('complete_clear_on_webhook')
                     ->info('Should the whole contentful cache be cleared every time on an entry reset request?')
                     ->defaultValue(false)
                 ->end()
@@ -84,6 +98,7 @@ class Configuration implements ConfigurationInterface
 
     /**
      * Parses the config.
+     *
      * @return TreeBuilder
      */
     public function getConfigTreeBuilder()
@@ -116,7 +131,9 @@ class Configuration implements ConfigurationInterface
 
     /**
      * Adds the content types to the contentful config.
+     *
      * @return ArrayNodeDefinition
+     *
      * @todo https://www.contentful.com/developers/docs/references/content-management-api/#/reference/content-types
      * @todo https://www.contentful.com/developers/docs/references/content-management-api/#/reference/editor-interface
      * @todo Not Every Field Type, Content Type, Asset, Editor Interface etc. is tested.

@@ -63,6 +63,9 @@ best_it_contentful:
         # Please provider your service id for caching contentful contents.
         content:              ~ # Required
 
+        # If the requested url contains this query parameter, the routing cache will be ignored.
+        parameter_against_routing_cache:  ignore-contentful-routing-cache
+
         # Please provider your service id for caching contentful routings.
         routing:              ~ # Required
 
@@ -191,6 +194,29 @@ if (is_scalar($where)) {
         $cacheId = sha1(__METHOD__ . ':' . $contentType . ':' . serialize($where))
     );
 }
+```
+
+### Router ###
+
+We provide you with a router if you want to match contentful elements directly through the url to a controller action
+ of your app. Just register our Slug-Matcher with your [CMF-Routing-Chain](https://symfony.com/doc/current/cmf/components/routing/chain.html):
+ 
+```yaml
+services: 
+    app.router.contentful:
+        class: BestIt\ContentfulBundle\Routing\ContentfulSlugMatcher
+        public: false
+        arguments:
+            - '@best_it_contentful.cache.pool.routing'
+            - '@best_it_contentful.delivery.client'
+            - '%best_it_contentful.controller_field%'
+            - '%best_it_contentful.routing_field%'
+            - '@best_it_contentful.routing.route_collection_response_parser'
+            - '%best_it_contentful.cache.parameter_against_routing_cache%'
+        calls:
+            - [setRoutableTypes, ['%best_it_contentful.routable_types%']]
+        tags:
+            - { name: router, priority: 0 }  # Adjusted to not override the manual routing done by Symfony
 ```
 
 ### View-Helper

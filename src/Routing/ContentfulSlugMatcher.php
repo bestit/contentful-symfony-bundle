@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BestIt\ContentfulBundle\Routing;
 
+use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\ClientDecoratorAwareTrait;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
@@ -27,7 +28,6 @@ use function array_map;
 use function array_walk;
 use function current;
 use function method_exists;
-use function sha1;
 use function strlen;
 
 /**
@@ -38,18 +38,13 @@ use function strlen;
  */
 class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInterface
 {
+    use CacheTagsGetterTrait;
     use ClientDecoratorAwareTrait;
-    use RoutableTypesAwareTrait;
 
     /**
      * @var string The used cache key for creating and tagging the route collection.
      */
     const COLLECTION_CACHE_KEY = 'route_collection';
-
-    /**
-     * @var string The prefix for the route-hash to create a cache key.
-     */
-    const ROUTE_CACHE_KEY_PREFIX = 'contentful-routing-';
 
     /**
      * @var CacheItemPoolInterface The possible cache class.
@@ -76,9 +71,19 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
     private $controllerField;
 
     /**
+     * @var string If the value of this parameter is true, then the cache is ignored.
+     */
+    private $ignoreCacheKey;
+
+    /**
      * @var int How many levels should be included in contentful if a route machtes?
      */
     private $includeLevelForMatching;
+
+    /**
+     * @var bool Is the routing cache ignored?
+     */
+    private $isCacheIgnored = false;
 
     /**
      * @var ResponseParserInterface The response parser specially for the route collection.
@@ -93,6 +98,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
      * @param string $controllerField
      * @param string $slugField
      * @param ResponseParserInterface $routeCollectionResponseParser The response parser specially for the route coll.
+     * @param string $ignoreCacheKey If the value of this parameter is true, then the cache is ignored.
      * @param int $includeLevelForMatching How many levels should be included in contentful if a route machtes?
      */
     public function __construct(
@@ -101,9 +107,11 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
         string $controllerField,
         string $slugField,
         ResponseParserInterface $routeCollectionResponseParser,
+        string $ignoreCacheKey = '',
         int $includeLevelForMatching = 10
     ) {
         $this->cache = $cache;
+        $this->ignoreCacheKey = $ignoreCacheKey;
         $this->includeLevelForMatching = $includeLevelForMatching;
         $this->routeCollectionResponseParser = $routeCollectionResponseParser;
 
@@ -184,11 +192,12 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
             $requestUri = '/' . $requestUri;
         }
 
+        $requestUri = parse_url($requestUri,  PHP_URL_PATH);
         $cache = $this->cache;
-        $cacheHit = $cache->getItem($cacheId = self::ROUTE_CACHE_KEY_PREFIX . sha1($requestUri));
+        $cacheHit = $cache->getItem($this->getRoutingCacheId($requestUri));
         $entry = null;
 
-        if (!$cacheHit->isHit()) {
+        if ($this->isCacheIgnored || !$cacheHit->isHit()) {
             foreach ($this->getRoutableTypes() as $routableType) {
                 $entries = $this->clientDecorator->getEntries(function (Query $query) use ($requestUri, $routableType) {
                     $query
@@ -204,11 +213,15 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
                 }
             }
 
-            if (method_exists($cacheHit, 'tag')) {
-                $cacheHit->tag([$cacheId]);
-            }
+            $cacheHit->set($entry);
 
-            $cache->save($cacheHit->set($entry));
+            if (!$this->isCacheIgnored) {
+                if (method_exists($cacheHit, 'tag')) {
+                    $cacheHit->tag($this->getCacheTags($entry));
+                }
+
+                $cache->save($cacheHit);
+            }
         }
 
         return $cacheHit->get();
@@ -300,6 +313,8 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
     public function matchRequest(Request $request): array
     {
         $requestUri = $request->getRequestUri();
+
+        $this->isCacheIgnored = $this->ignoreCacheKey && (bool) $request->get($this->ignoreCacheKey, false);
 
         if ($requestUri !== '/') {
             if ($entry = $this->getMatchingEntry($requestUri)) {
