@@ -58,25 +58,32 @@ best_it_contentful:
 
     # This content types have a routable page in the project.
     routable_types:       []
-    caching:
+    caching:              # Required
+        content:
 
-        # Please provider your service id for caching contentful contents.
-        content:              ~ # Required
+            # Please provider your service id for caching contentful contents.
+            service_id:           ~ # Required
 
-        # If the requested url contains this query parameter, the routing cache will be ignored.
-        parameter_against_routing_cache:  ignore-contentful-routing-cache
+            # Please provide the ttl for your content cache in seconds. 0 means forever.
+            cache_time:           0
+        routing:
 
-        # Please provider your service id for caching contentful routings.
-        routing:              ~ # Required
+            # Please provider your service id for caching contentful routings.
+            service_id:           ~ # Required
+
+            # Please provide the ttl for your routing cache in seconds. 0 means forever.
+            cache_time:           0
+
+            # If the requested url contains this query parameter, the routing cache will be ignored.
+            parameter_against_routing_cache:  ignore-contentful-routing-cache
+
+        # Should the whole contentful cache be cleared every time on an entry reset request?
+        complete_clear_on_webhook:  false
 
         # Which cache ids should be resetted everytime?
         collection_consumer:  []
-        
-        # Should the whole cache pool be cleared after an entry reset over the webhook is detected
-        complete_clear_on_webhook: false
 
-    # Add the content types mainly documented under: <https://www.contentful.com/developers/docs/references/content-management-api/#/r
-eference/content-types>
+    # Add the content types mainly documented under: <https://www.contentful.com/developers/docs/references/content-management-api/#/reference/content-types>
     content_types:
 
         # Prototype
@@ -85,8 +92,7 @@ eference/content-types>
             displayField:         ~ # Required
             name:                 ~ # Required
 
-            # Give the logical controller name for the routing, like document under <http://symfony.com/doc/current/routing.html#contr
-oller-string-syntax>
+            # Give the logical controller name for the routing, like document under <http://symfony.com/doc/current/routing.html#controller-string-syntax>
             controller:           ~
             fields:               # Required
 
@@ -101,16 +107,11 @@ oller-string-syntax>
                         linkType:             ~ # One of "Asset"; "Entry"
                         validations:
                             linkContentType:      []
-                    type:                 ~ # One of "Array"; "Boolean"; "Date"; "Integer"; "Location"; "Link"; "Number"; "Object"; "S
-ymbol"; "Text", Required
+                    type:                 ~ # One of "Array"; "Boolean"; "Date"; "Integer"; "Location"; "Link"; "Number"; "Object"; "Symbol"; "Text", Required
 
-                    # Shortcut to handle the editor interface for this field, documentation can be found here: <https://www.contentful
-.com/developers/docs/references/content-management-api/#/reference/editor-interface>
+                    # Shortcut to handle the editor interface for this field, documentation can be found here: <https://www.contentful.com/developers/docs/references/content-management-api/#/reference/editor-interface>
                     control:              # Required
-                        id:                   ~ # One of "assetLinkEditor"; "assetLinksEditor"; "assetGalleryEditor"; "boolean"; "date
-Picker"; "entryLinkEditor"; "entryLinksEditor"; "entryCardEditor"; "entryCardsEditor"; "numberEditor"; "rating"; "locationEditor"; "ob
-jectEditor"; "urlEditor"; "slugEditor"; "ooyalaEditor"; "kalturaEditor"; "kalturaMultiVideoEditor"; "listInput"; "checkbox"; "tagEdito
-r"; "multipleLine"; "markdown"; "singleLine"; "dropdown"; "radio", Required
+                        id:                   ~ # One of "assetLinkEditor"; "assetLinksEditor"; "assetGalleryEditor"; "boolean"; "datePicker"; "entryLinkEditor"; "entryLinksEditor"; "entryCardEditor"; "entryCardsEditor"; "numberEditor"; "rating"; "locationEditor"; "objectEditor"; "urlEditor"; "slugEditor"; "ooyalaEditor"; "kalturaEditor"; "kalturaMultiVideoEditor"; "listInput"; "checkbox"; "tagEditor"; "multipleLine"; "markdown"; "singleLine"; "dropdown"; "radio", Required
                         settings:             # Required
                             ampm:                 ~
                             falseLabel:           ~
