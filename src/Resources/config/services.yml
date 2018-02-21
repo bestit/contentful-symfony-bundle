@@ -18,6 +18,7 @@ services:
             - '@logger'
             - '@best_it_contentful.delivery.response_parser.default'
         calls:
+            - [setCacheTTL, ['%best_it_contentful.cache.content.cache_ttl%']]
             - [setRoutableTypes, ['%best_it_contentful.routable_types%']]
             - [setSlugField, ['%best_it_contentful.routing_field%']]
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BestIt\ContentfulBundle\Routing;
 
 use BestIt\ContentfulBundle\CacheTagsGetterTrait;
+use BestIt\ContentfulBundle\CacheTTLAwareTrait;
 use BestIt\ContentfulBundle\ClientDecoratorAwareTrait;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
@@ -39,6 +40,7 @@ use function strlen;
 class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInterface
 {
     use CacheTagsGetterTrait;
+    use CacheTTLAwareTrait;
     use ClientDecoratorAwareTrait;
 
     /**
@@ -214,6 +216,11 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
             }
 
             $cacheHit->set($entry);
+
+            if ($cacheTTL = $this->getCacheTTL()) {
+
+                $cacheHit->expiresAfter($cacheTTL);
+            }
 
             if (!$this->isCacheIgnored) {
                 if (method_exists($cacheHit, 'tag')) {

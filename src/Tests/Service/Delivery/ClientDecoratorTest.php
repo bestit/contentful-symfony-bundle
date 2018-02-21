@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BestIt\ContentfulBundle\Tests\Service\Delivery;
 
 use BestIt\ContentfulBundle\CacheTagsGetterTrait;
+use BestIt\ContentfulBundle\CacheTTLAwareTrait;
 use BestIt\ContentfulBundle\ClientEvents;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
@@ -80,7 +81,7 @@ class ClientDecoratorTest extends TestCase
      */
     protected function getUsedTraitNames(): array
     {
-        return [CacheTagsGetterTrait::class, LoggerAwareTrait::class];
+        return [CacheTagsGetterTrait::class, CacheTTLAwareTrait::class, LoggerAwareTrait::class];
     }
 
     /**

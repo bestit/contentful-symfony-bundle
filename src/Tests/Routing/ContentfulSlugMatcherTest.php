@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BestIt\ContentfulBundle\Tests\Routing;
 
 use BestIt\ContentfulBundle\CacheTagsGetterTrait;
+use BestIt\ContentfulBundle\CacheTTLAwareTrait;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use BestIt\ContentfulBundle\Routing\ContentfulSlugMatcher;
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
@@ -24,6 +25,7 @@ use Symfony\Component\Routing\Matcher\RequestMatcherInterface;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 use function md5;
+use function mt_rand;
 use function uniqid;
 
 /**
@@ -77,7 +79,7 @@ class ContentfulSlugMatcherTest extends TestCase
      */
     protected function getUsedTraitNames(): array
     {
-        return [CacheTagsGetterTrait::class];
+        return [CacheTagsGetterTrait::class, CacheTTLAwareTrait::class];
     }
 
     /**
@@ -130,7 +132,9 @@ class ContentfulSlugMatcherTest extends TestCase
      */
     public function testGetRouteCollectionSkipOnNotFoundException()
     {
-        $this->fixture->setRoutableTypes([$type1 = uniqid(), $type2 = uniqid()]);
+        $this->fixture
+            ->setCacheTTL($ttl = mt_rand(1, 10000))
+            ->setRoutableTypes([$type1 = uniqid(), $type2 = uniqid()]);
 
         $this->client
             ->expects(static::at(0))
@@ -170,6 +174,7 @@ class ContentfulSlugMatcherTest extends TestCase
             ->with('route_collection')
             ->willReturn($cacheItem = $this->createMock(CacheItemInterface::class));
 
+        $cacheItem->method('expiresAfter')->with($ttl);
         $cacheItem->method('isHit')->willReturn(false);
         $cacheItem->method('set')->with(static::isInstanceOf(RouteCollection::class))->willReturnSelf();
         $this->cache->method('save')->with($cacheItem);

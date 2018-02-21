@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BestIt\ContentfulBundle\Service\Delivery;
 
 use BestIt\ContentfulBundle\CacheTagsGetterTrait;
+use BestIt\ContentfulBundle\CacheTTLAwareTrait;
 use BestIt\ContentfulBundle\ClientEvents;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use Contentful\Delivery\Asset;
@@ -32,6 +33,7 @@ use function sprintf;
 class ClientDecorator implements LoggerAwareInterface
 {
     use CacheTagsGetterTrait;
+    use CacheTTLAwareTrait;
     use LoggerAwareTrait;
 
     /**
@@ -175,6 +177,10 @@ class ClientDecorator implements LoggerAwareInterface
                 $cacheItem->tag($cacheTags);
             }
 
+            if ($cacheTTL = $this->getCacheTTL()) {
+                $cacheItem->expiresAfter($cacheTTL);
+            }
+
             $cache->save($cacheItem->set($entries));
         }
 
@@ -224,6 +230,10 @@ class ClientDecorator implements LoggerAwareInterface
 
                 if ($entryTags && method_exists($cacheItem, 'tag')) {
                     $cacheItem->tag($entryTags);
+                }
+
+                if ($cacheTTL = $this->getCacheTTL()) {
+                    $cacheItem->expiresAfter($cacheTTL);
                 }
 
                 $cache->save($cacheItem->set($entry));
