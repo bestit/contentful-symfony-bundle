@@ -5,9 +5,6 @@ services:
             - '@best_it_contentful.cache.pool.delivery'
             - '%best_it_contentful.collection_consumer%'
             - '%best_it_contentful.complete_clear_on_webhook%'
-        calls:
-            - [setRoutableTypes, ['%best_it_contentful.routable_types%']]
-            - [setSlugField, ['%best_it_contentful.routing_field%']]
 
     best_it_contentful.delivery.client:
         class: BestIt\ContentfulBundle\Service\Delivery\ClientDecorator
