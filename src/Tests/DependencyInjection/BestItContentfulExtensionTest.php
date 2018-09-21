@@ -55,6 +55,7 @@ class BestItContentfulExtensionTest extends AbstractExtensionTestCase
         $this->registerService($cacheService = 'cache.' . uniqid(), FilesystemAdapter::class);
 
         return [
+            'client' => 'contentful.delivery',
             'caching' => [
                 'content' => [
                     'service_id' => $cacheService

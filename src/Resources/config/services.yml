@@ -9,10 +9,10 @@ services:
     best_it_contentful.delivery.client:
         class: BestIt\ContentfulBundle\Service\Delivery\ClientDecorator
         arguments:
-            - '@contentful.delivery'
+            - '@best_it_contentful.client'
             - '@best_it_contentful.cache.pool.delivery'
-            - '@event_dispatcher'
-            - '@logger'
+            - '@best_it_contentful.event_dispatcher'
+            - '@best_it_contentful.logger'
             - '@best_it_contentful.delivery.response_parser.default'
         calls:
             - [setCacheTTL, ['%best_it_contentful.cache.content.cache_ttl%']]
