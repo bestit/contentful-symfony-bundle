@@ -57,14 +57,12 @@ class BestItContentfulExtension extends Extension
             $config['caching']['routing']['parameter_against_routing_cache']
         );
 
-        $container->setAlias(
-            'best_it_contentful.cache.pool.delivery',
-            $config['caching']['content']['service_id']
-        );
-
-        $container->setAlias(
-            'best_it_contentful.cache.pool.routing',
-            $config['caching']['routing']['service_id']
-        );
+        $container->setAliases([
+            'best_it_contentful.cache.pool.delivery' => $config['caching']['content']['service_id'],
+            'best_it_contentful.cache.pool.routing' => $config['caching']['routing']['service_id'],
+            'best_it_contentful.event_dispatcher' => $config['event_dispatcher'],
+            'best_it_contentful.logger' => $config['logger'],
+            'best_it_contentful.client' => $config['client']
+        ]);
     }
 }
