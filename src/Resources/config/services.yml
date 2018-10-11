@@ -6,6 +6,7 @@ services:
 
     best_it_contentful.delivery.cache.reset_service:
         class: BestIt\ContentfulBundle\Service\CacheResetService
+        public: true
         arguments:
             - '@best_it_contentful.cache.pool.delivery'
             - '%best_it_contentful.collection_consumer%'
@@ -13,6 +14,7 @@ services:
 
     best_it_contentful.delivery.client:
         class: BestIt\ContentfulBundle\Service\Delivery\ClientDecorator
+        public: true
         arguments:
             - '@best_it_contentful.client'
             - '@best_it_contentful.cache.pool.delivery'
