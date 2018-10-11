@@ -1,4 +1,9 @@
 services:
+    best_it_contentful.command.contentful_create_types_command:
+        class: BestIt\ContentfulBundle\Command\ContentfulCreateTypesCommand
+        tags:
+            - { name: console.command }
+
     best_it_contentful.delivery.cache.reset_service:
         class: BestIt\ContentfulBundle\Service\CacheResetService
         arguments:
