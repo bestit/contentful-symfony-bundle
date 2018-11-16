@@ -8,23 +8,20 @@ use BestIt\ContentfulBundle\CacheTTLAwareTrait;
 use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use BestIt\ContentfulBundle\Routing\ContentfulSlugMatcher;
-use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
 use BestIt\ContentfulBundle\Tests\TestTraitsTrait;
+use Contentful\Delivery\Client;
 use Contentful\Delivery\ContentType;
 use Contentful\Delivery\Query;
 use Contentful\Exception\NotFoundException;
+use Contentful\ResourceArray;
 use PHPUnit\Framework\TestCase;
 use PHPUnit_Framework_MockObject_MockObject;
-use Psr\Cache\CacheItemInterface;
-use Psr\Cache\CacheItemPoolInterface;
-use Symfony\Component\Cache\CacheItem;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Matcher\RequestMatcherInterface;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
-use function md5;
 use function mt_rand;
 use function uniqid;
 
@@ -39,12 +36,7 @@ class ContentfulSlugMatcherTest extends TestCase
     use TestTraitsTrait;
 
     /**
-     * @var CacheItemPoolInterface|null|PHPUnit_Framework_MockObject_MockObject The used cache.
-     */
-    private $cache;
-
-    /**
-     * @var ClientDecorator|null|PHPUnit_Framework_MockObject_MockObject The used client.
+     * @var Client|null|PHPUnit_Framework_MockObject_MockObject The used client.
      */
     private $client;
 
@@ -59,11 +51,6 @@ class ContentfulSlugMatcherTest extends TestCase
     protected $fixture;
 
     /**
-     * @var string Query parameter name to ignore caches.
-     */
-    private $ignoreCacheParameter;
-
-    /**
      * @var int How many levels should be matched with the contentful request.
      */
     private $matchingLevel;
@@ -74,13 +61,18 @@ class ContentfulSlugMatcherTest extends TestCase
     private $slugField;
 
     /**
+     * @var ResponseParserInterface|PHPUnit_Framework_MockObject_MockObject $routeCollectionParser
+     */
+    private $routeCollectionParser;
+
+    /**
      * Returns the names of the used traits.
      *
      * @return array
      */
     protected function getUsedTraitNames(): array
     {
-        return [CacheTagsGetterTrait::class, CacheTTLAwareTrait::class];
+        return [CacheTagsGetterTrait::class];
     }
 
     /**
@@ -91,39 +83,12 @@ class ContentfulSlugMatcherTest extends TestCase
     protected function setUp()
     {
         $this->fixture = new ContentfulSlugMatcher(
-            $this->cache = $this->createMock(CacheItemPoolInterface::class),
-            $this->client = $this->createMock(ClientDecorator::class),
+            $this->client = $this->createMock(Client::class),
             $this->controllerField = uniqid('', true),
             $this->slugField = uniqid('', true),
-            $this->createMock(ResponseParserInterface::class),
-            $this->ignoreCacheParameter = uniqid(),
+            $this->routeCollectionParser = $this->createMock(ResponseParserInterface::class),
             $this->matchingLevel = mt_rand(1, 10)
         );
-    }
-
-    /**
-     * Checks if the route collection use cache
-     *
-     * @return void
-     */
-    public function testGetRouteCollectionCache()
-    {
-        $this->fixture->setRoutableTypes([$type1 = uniqid(), $type2 = uniqid()]);
-
-        $this->client
-            ->expects(static::never())
-            ->method('getEntries');
-
-        $this->cache
-            ->expects(static::once())
-            ->method('getItem')
-            ->with('route_collection')
-            ->willReturn($cacheItem = $this->createMock(CacheItemInterface::class));
-
-        $cacheItem->method('isHit')->willReturn(true);
-        $cacheItem->method('get')->willReturn($collection = new RouteCollection());
-
-        static::assertSame($collection, $this->fixture->getRouteCollection());
     }
 
     /**
@@ -134,19 +99,21 @@ class ContentfulSlugMatcherTest extends TestCase
     public function testGetRouteCollectionSkipOnNotFoundException()
     {
         $this->fixture
-            ->setCacheTTL($ttl = mt_rand(1, 10000))
             ->setRoutableTypes([$type1 = uniqid(), $type2 = uniqid()]);
 
         $this->client
             ->expects(static::at(0))
             ->method('getEntries')
-            ->with(static::callback(function (callable $queryChanger) use ($type1) {
-                $queryChanger($query = new Query());
-
+            ->with(static::callback(function (Query  $query) use ($type1) {
                 static::assertSame($type1, $query->getQueryData()['content_type'], 'Wrong type 1.');
-
                 return true;
             }))
+            ->willReturn($entries = $this->createMock(ResourceArray::class));
+
+        $this->routeCollectionParser
+            ->expects(static::once())
+            ->method('toArray')
+            ->with($entries)
             ->willReturn([
                 $entry = [
                     '_contentType' => $type = $this->createMock(ContentType::class),
@@ -160,25 +127,11 @@ class ContentfulSlugMatcherTest extends TestCase
         $this->client
             ->expects(static::at(1))
             ->method('getEntries')
-            ->with(static::callback(function (callable $queryChanger) use ($type2) {
-                $queryChanger($query = new Query());
-
+            ->with(static::callback(function (Query $query) use ($type2) {
                 static::assertSame($type2, $query->getQueryData()['content_type'], 'Wrong type 2.');
-
                 return true;
             }))
             ->willThrowException($this->createMock(NotFoundException::class));
-
-        $this->cache
-            ->expects(static::once())
-            ->method('getItem')
-            ->with('route_collection')
-            ->willReturn($cacheItem = $this->createMock(CacheItemInterface::class));
-
-        $cacheItem->method('expiresAfter')->with($ttl);
-        $cacheItem->method('isHit')->willReturn(false);
-        $cacheItem->method('set')->with(static::isInstanceOf(RouteCollection::class))->willReturnSelf();
-        $this->cache->method('save')->with($cacheItem);
 
         $collection = $this->fixture->getRouteCollection();
 
@@ -208,51 +161,34 @@ class ContentfulSlugMatcherTest extends TestCase
     /**
      * Checks if a request is correctly matched.
      *
-     * @param bool $withCacheUsage
-     *
      * @return void
      */
-    public function testMatchRequestSuccess(bool $withCacheUsage = true, Request $request = null)
+    public function testMatchRequestSuccess()
     {
-        $this->fixture = $this->getMockBuilder(ContentfulSlugMatcher::class)
-            ->setConstructorArgs([
-                $this->cache,
-                $this->client,
-                $this->controllerField,
-                $this->slugField,
-                $this->createMock(ResponseParserInterface::class),
-                $this->ignoreCacheParameter,
-                $this->matchingLevel
-            ])
-            ->setMethods(['getCacheTags'])
-            ->getMock();
+        $this->fixture = new ContentfulSlugMatcher(
+            $this->client,
+            $this->controllerField,
+            $this->slugField,
+            $this->createMock(ResponseParserInterface::class),
+            $this->matchingLevel
+        );
 
         $this->fixture
             ->setRoutableTypes(['unusedType', 'usedType']);
 
-        if (!$request) {
-            $request = $this->createMock(Request::class);
-        }
+        $request = $this->createMock(Request::class);
 
         $request
             ->expects(static::once())
             ->method('getRequestUri')
             ->willReturn($slug = '/' . uniqid());
 
-        $this->cache
-            ->expects(static::once())
-            ->method('getItem')
-            ->with(md5($slug) . '-contentful-routing')
-            ->willReturn($cacheItem = new CacheItem());
-
         $this->client
             ->expects(static::exactly(2))
             ->method('getEntries')
             ->withConsecutive(
                 [
-                    static::callback(function (callable $callback) use ($slug) {
-                        $callback($query = new Query());
-
+                    static::callback(function (Query $query) use ($slug) {
                         static::assertSame(
                             [
                                 'limit' => 1,
@@ -269,9 +205,7 @@ class ContentfulSlugMatcherTest extends TestCase
                     })
                 ],
                 [
-                    static::callback(function (callable $callback) use ($slug) {
-                        $callback($query = new Query());
-
+                    static::callback(function (Query  $query) use ($slug) {
                         static::assertSame(
                             [
                                 'limit' => 1,
@@ -289,31 +223,34 @@ class ContentfulSlugMatcherTest extends TestCase
                 ]
             )
             ->will(static::onConsecutiveCalls(
-                [],
-                [
-                    $entry = [
-                        '_contentType' => $contentType = $this->createMock(ContentType::class),
-                        '_id' => $id = uniqid(),
-                        $this->controllerField => $controller = uniqid()
-                    ]
-                ]
+                $emptyEntries = $this->createMock(ResourceArray::class),
+                $entries = $this->createMock(ResourceArray::class)
             ));
+
+        $emptyEntries
+            ->expects(static::once())
+            ->method('count')
+            ->willReturn(0);
+        $entries
+            ->expects(static::once())
+            ->method('count')
+            ->willReturn(1);
+
+        $entries
+            ->expects(static::once())
+            ->method('offsetGet')
+            ->with(0)
+            ->willReturn($entry = [
+                '_contentType' => $contentType = $this->createMock(ContentType::class),
+                '_id' => $id = uniqid(),
+                $this->slugField => $slug,
+                $this->controllerField => $controller = uniqid()
+            ]);
 
         $contentType
             ->expects(static::once())
             ->method('getId')
             ->willReturn($contentTypeId = uniqid());
-
-        $this->cache
-            ->expects($withCacheUsage ? static::once() : static::never())
-            ->method('save')
-            ->with($cacheItem);
-
-        $this->fixture
-            ->expects($withCacheUsage ? static::once() : static::never())
-            ->method('getCacheTags')
-            ->with($entry)
-            ->willReturn([uniqid()]);
 
         static::assertSame(
             [
@@ -323,24 +260,6 @@ class ContentfulSlugMatcherTest extends TestCase
             ],
             $this->fixture->matchRequest($request)
         );
-    }
-
-    /**
-     * Checks if the request is matched but the cache ignored.
-     *
-     * @return void
-     */
-    public function testMatchRequestSuccessButIgnoreCache()
-    {
-        $request = $this->createMock(Request::class);
-
-        $request
-            ->expects(static::once())
-            ->method('get')
-            ->with($this->ignoreCacheParameter, false)
-            ->willReturn('false');
-
-        $this->testMatchRequestSuccess(false, $request);
     }
 
     /**
@@ -358,12 +277,6 @@ class ContentfulSlugMatcherTest extends TestCase
             ->expects(static::once())
             ->method('getRequestUri')
             ->willReturn($slug = '/' . uniqid());
-
-        $this->cache
-            ->expects(static::once())
-            ->method('getItem')
-            ->with(md5($slug) . '-contentful-routing')
-            ->willReturn(new CacheItem());
 
         $this->fixture->matchRequest($request);
     }

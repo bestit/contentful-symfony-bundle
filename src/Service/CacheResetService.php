@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace BestIt\ContentfulBundle\Service;
 
-use BestIt\ContentfulBundle\Routing\ContentfulSlugMatcher;
+use BestIt\ContentfulBundle\Routing\CachingContentfulSlugMatcher;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\Cache\Adapter\TagAwareAdapterInterface;
 use stdClass;
@@ -73,7 +73,7 @@ class CacheResetService
                 }
 
                 if ($this->cache instanceof TagAwareAdapterInterface) {
-                    $this->cache->invalidateTags([ContentfulSlugMatcher::COLLECTION_CACHE_KEY, $entryId]);
+                    $this->cache->invalidateTags([CachingContentfulSlugMatcher::COLLECTION_CACHE_KEY, $entryId]);
                 }
             }
 

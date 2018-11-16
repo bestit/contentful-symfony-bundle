@@ -50,6 +50,18 @@ class BestItContentfulExtensionTest extends AbstractExtensionTestCase
     }
 
     /**
+     * Returns assertions for checking declared aliases.
+     *
+     * @return array
+     */
+    public function getDeclaredAliases(): array
+    {
+        return [
+            ['best_it_contentful.delivery.response_parser', 'best_it_contentful.delivery.response_parser.default']
+        ];
+    }
+
+    /**
      * Returns the minimal config.
      *
      * @return array
@@ -102,5 +114,20 @@ class BestItContentfulExtensionTest extends AbstractExtensionTestCase
         if ($tag) {
             $this->assertContainerBuilderHasServiceDefinitionWithTag($serviceId, $tag);
         }
+    }
+
+    /**
+     * Checks if a declared alias exists.
+     *
+     * @dataProvider getDeclaredAliases
+     *
+     * @param string $aliasId
+     * @param string $serviceId
+     *
+     * @return void
+     */
+    public function testDeclaredAliases(string $aliasId, string $serviceId)
+    {
+        $this->assertContainerBuilderHasAlias($aliasId, $serviceId);
     }
 }
