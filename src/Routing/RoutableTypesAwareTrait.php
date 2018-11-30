@@ -7,6 +7,7 @@ namespace BestIt\ContentfulBundle\Routing;
 /**
  * Helps you to inject the content type name which are routable.
  *
+ * @author blange <bjoern.lange@bestit-online.de>
  * @package BestIt\ContentfulBundle\Routing
  */
 trait RoutableTypesAwareTrait
@@ -45,6 +46,7 @@ trait RoutableTypesAwareTrait
      * Sets the ids of the routable types.
      *
      * @param array $routableTypes
+     *
      * @return $this
      */
     public function setRoutableTypes(array $routableTypes): self
@@ -58,6 +60,7 @@ trait RoutableTypesAwareTrait
      * Sets the name of the slug field.
      *
      * @param string $slugField
+     *
      * @return $this
      */
     public function setSlugField(string $slugField): self

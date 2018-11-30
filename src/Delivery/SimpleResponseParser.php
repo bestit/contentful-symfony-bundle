@@ -12,16 +12,18 @@ use Contentful\ResourceArray;
  *
  * There is no High level api to get the raw data to write it to a persistent cache and simple serializing of the
  * response objects does not work because of the nested objects in the response.
+ *
  * @author lange <lange@bestit-online.de>
- * @package BestIt\ContentfulBundle
+ * @package BestIt\ContentfulBundle\Delivery
  * @subpackage Delivery
- * @version $id$
  */
 class SimpleResponseParser implements ResponseParserInterface
 {
     /**
      * Reads the values from an entry (and resolves its links) recursively.
+     *
      * @param DynamicEntry $entry
+     *
      * @return array
      */
     protected function resolveEntry(DynamicEntry $entry): array
@@ -59,7 +61,9 @@ class SimpleResponseParser implements ResponseParserInterface
 
     /**
      * Makes a simple array out of the response to cache it and make it more independent.
+     *
      * @param DynamicEntry|ResourceArray|array $result
+     *
      * @return array
      */
     public function toArray($result): array

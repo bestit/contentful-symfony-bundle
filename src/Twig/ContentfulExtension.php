@@ -9,21 +9,23 @@ use Twig_SimpleFunction;
 
 /**
  * Makes contentful entries directly usable in the template.
+ *
  * @author blange <lange@bestit-online.de>
- * @package BestIt\ContentfulBundle
+ * @package BestIt\ContentfulBundle\Twig
  * @subpackage Twig
- * @version $id$
  */
 class ContentfulExtension extends Twig_Extension
 {
     /**
      * The used contentful client.
+     *
      * @var ClientDecorator
      */
     private $client = null;
 
     /**
      * ContentfulExtension constructor.
+     *
      * @param ClientDecorator $clientDecorator
      */
     public function __construct(ClientDecorator $clientDecorator)
@@ -33,6 +35,7 @@ class ContentfulExtension extends Twig_Extension
 
     /**
      * Returns the used contentful client.
+     *
      * @return ClientDecorator
      */
     private function getClient(): ClientDecorator
@@ -42,11 +45,13 @@ class ContentfulExtension extends Twig_Extension
 
     /**
      * Returns contentful content to use directly in the template.
+     *
      * @param string|array $where The direct usable id or an array as where query.
      * @param string $attribute Which attribute should be returned. If no string given, the array itself is given ...
      * @param string $contentType The queried content type.
      * @param int $limit How many entries should be fetched on a where query.
      * @param string $default The default value if nothing is found.
+     *
      * @return array|mixed|string
      */
     public function getContentfulContent(
@@ -90,6 +95,7 @@ class ContentfulExtension extends Twig_Extension
 
     /**
      * Returns the name for this extension.
+     *
      * @return string
      */
     public function getName(): string
@@ -99,6 +105,7 @@ class ContentfulExtension extends Twig_Extension
 
     /**
      * Returns helping functions.
+     *
      * @return Twig_SimpleFunction[]
      */
     public function getFunctions(): array
@@ -113,7 +120,9 @@ class ContentfulExtension extends Twig_Extension
 
     /**
      * Sets the used contentful client.
+     *
      * @param ClientDecorator $client
+     *
      * @return ContentfulExtension
      */
     private function setClient(ClientDecorator $client): ContentfulExtension

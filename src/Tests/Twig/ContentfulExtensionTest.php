@@ -11,6 +11,7 @@ use Twig_SimpleFunction;
 
 /**
  * Tests the contentful extension.
+ *
  * @author lange <lange@bestit-online.de>
  * @package BestIt\ContentfulBundle\Tests\Twig
  */
@@ -18,18 +19,21 @@ class ContentfulExtensionTest extends TestCase
 {
     /**
      * The mocked client.
+     *
      * @var ClientDecorator|PHPUnit_Framework_MockObject_MockObject|null
      */
     private $mockedClient;
 
     /**
      * The tested class.
+     *
      * @var ContentfulExtension|null
      */
     private $fixture;
 
     /**
      * Get contentful getter name with rules to assert.
+     *
      * @return array
      */
     public function getContentfulGetter()
@@ -42,6 +46,7 @@ class ContentfulExtensionTest extends TestCase
 
     /**
      * Sets up the test.
+     *
      * @return void
      */
     protected function setUp()
@@ -53,6 +58,7 @@ class ContentfulExtensionTest extends TestCase
 
     /**
      * Checks if the function are returned correctly.
+     *
      * @return void
      */
     public function testGetFunctions()
@@ -73,14 +79,16 @@ class ContentfulExtensionTest extends TestCase
 
     /**
      * Checks the return of the contentful getter.
+     *
      * @dataProvider getContentfulGetter
+     * @todo Add more tests.
+     *
      * @param string|array $where
      * @param string $return
      * @param string $attribute
      * @param string $contentType
      * @param int $limit
      * @param string $default
-     * @todo Add more tests.
      */
     public function testGetContentfulContent(
         $where,

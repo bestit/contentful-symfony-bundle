@@ -17,8 +17,10 @@ class BestItContentfulExtension extends Extension
 {
     /**
      * Loads the bundle config.
+     *
      * @param array $configs
      * @param ContainerBuilder $container
+     *
      * @return void
      */
     public function load(array $configs, ContainerBuilder $container)

@@ -14,6 +14,7 @@ use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 
 /**
  * Class BestItContentfulExtensionTest
+ *
  * @author blange <lange@bestit-online.de>
  * @package BestIt\ContentfulBundle\Tests\DependencyInjection
  */
@@ -22,6 +23,7 @@ class BestItContentfulExtensionTest extends AbstractExtensionTestCase
 
     /**
      * Returns the container extensions to test.
+     *
      * @return BestItContentfulExtension[]
      */
     protected function getContainerExtensions(): array
@@ -31,6 +33,7 @@ class BestItContentfulExtensionTest extends AbstractExtensionTestCase
 
     /**
      * Returns assertions for checking declared services.
+     *
      * @return array
      */
     public function getDeclaredServices(): array
@@ -48,6 +51,7 @@ class BestItContentfulExtensionTest extends AbstractExtensionTestCase
 
     /**
      * Returns the minimal config.
+     *
      * @return array
      */
     protected function getMinimalConfiguration(): array
@@ -70,6 +74,7 @@ class BestItContentfulExtensionTest extends AbstractExtensionTestCase
 
     /**
      * Sets up the test.
+     *
      * @return void
      */
     protected function setUp()
@@ -81,10 +86,13 @@ class BestItContentfulExtensionTest extends AbstractExtensionTestCase
 
     /**
      * Checks if a declared service exists.
+     *
      * @dataProvider getDeclaredServices
+     *
      * @param string $serviceId
      * @param string $serviceClass
      * @param string $tag Should there be a tag.
+     *
      * @return void
      */
     public function testDeclaredServices(string $serviceId, string $serviceClass = '', string $tag = '')

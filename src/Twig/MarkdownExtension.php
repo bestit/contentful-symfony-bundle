@@ -8,21 +8,23 @@ use Twig_SimpleFilter;
 
 /**
  * Twig extension to render the markdown.
+ *
  * @author lange <lange@bestit-online.de>
- * @package BestIt\ContentfulBundle
+ * @package BestIt\ContentfulBundle\Twig
  * @subpackage Service
- * @version $id$
  */
 class MarkdownExtension extends Twig_Extension
 {
     /**
      * The markdown parser.
+     *
      * @var MarkdownParser
      */
     protected $parser;
 
     /**
      * MarkdownExtension constructor.
+     *
      * @param MarkdownParser $parser
      */
     public function __construct(MarkdownParser $parser)
@@ -32,6 +34,7 @@ class MarkdownExtension extends Twig_Extension
 
     /**
      * Returns the filters for twig.
+     *
      * @return Twig_SimpleFilter[]
      */
     public function getFilters(): array
@@ -41,6 +44,7 @@ class MarkdownExtension extends Twig_Extension
 
     /**
      * Returns the name.
+     *
      * @return string
      */
     public function getName(): string
@@ -50,6 +54,7 @@ class MarkdownExtension extends Twig_Extension
 
     /**
      * Returns the markdown parser.
+     *
      * @return MarkdownParser
      */
     protected function getParser(): MarkdownParser
@@ -59,7 +64,9 @@ class MarkdownExtension extends Twig_Extension
 
     /**
      * Sets the markdown parser.
+     *
      * @param MarkdownParser $parser
+     *
      * @return MarkdownExtension
      */
     protected function setParser(MarkdownParser $parser): MarkdownExtension
@@ -71,7 +78,9 @@ class MarkdownExtension extends Twig_Extension
 
     /**
      * Returns the rendered html.
+     *
      * @param mixed $content
+     *
      * @return string
      */
     public function parseMarkdown($content): string

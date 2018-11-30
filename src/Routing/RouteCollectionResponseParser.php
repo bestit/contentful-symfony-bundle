@@ -32,6 +32,7 @@ class RouteCollectionResponseParser extends SimpleResponseParser
      * Skips the childs and returns only the data which is needed for the routing of the direct requested entry.
      *
      * @param DynamicEntry $entry
+     *
      * @return array
      */
     protected function resolveEntry(DynamicEntry $entry): array

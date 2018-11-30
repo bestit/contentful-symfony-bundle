@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace BestIt\ContentfulBundle\Routing;
 
-use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\CacheTTLAwareTrait;
+use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\ClientDecoratorAwareTrait;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
@@ -138,17 +138,18 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
      *
      * If there is no route with the given name, the generator must throw the RouteNotFoundException.
      *
+     * @phpcsSuppress SlevomatCodingStandard.TypeHints.TypeHintDeclaration.MissingParameterTypeHint
+     * @todo Still to dirty!
+     *
      * @param string $name The name of the route
      * @param mixed $parameters An array of parameters
      * @param int $referenceType The type of reference to be generated (one of the constants)
      *
-     * @return string The generated URL
-     *
      * @throws RouteNotFoundException              If the named route doesn't exist
      * @throws MissingMandatoryParametersException When some parameters are missing that are mandatory for the route
-     * @throws InvalidParameterException           When a parameter value for a placeholder is not correct because
-     *                                             it does not match the requirement
-     * @todo Still to dirty!
+     * @throws InvalidParameterException           When a parameter value for a placeholder is not correct because it does not match the requirement
+     *
+     * @return string The generated URL
      */
     public function generate($name, $parameters = [], $referenceType = self::ABSOLUTE_PATH)
     {
@@ -185,8 +186,9 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
      * Returns a matching entry for the request uri.
      *
      * @param string $requestUri
-     * @return array|null
      * @todo Add Support for query. Add helper to create the cache key.
+     *
+     * @return array|null
      */
     private function getMatchingEntry(string $requestUri)
     {
@@ -194,7 +196,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
             $requestUri = '/' . $requestUri;
         }
 
-        $requestUri = parse_url($requestUri,  PHP_URL_PATH);
+        $requestUri = parse_url($requestUri, PHP_URL_PATH);
         $cache = $this->cache;
         $cacheHit = $cache->getItem($this->getRoutingCacheId($requestUri));
         $entry = null;
@@ -218,7 +220,6 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
             $cacheHit->set($entry);
 
             if ($cacheTTL = $this->getCacheTTL()) {
-
                 $cacheHit->expiresAfter($cacheTTL);
             }
 
@@ -252,6 +253,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
      * Returns the route name for the given contentful entry.
      *
      * @param array $entry
+     *
      * @return string
      */
     public function getRouteNameForEntry(array $entry)
@@ -262,8 +264,9 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
     /**
      * Loads the route collection.
      *
-     * @return void
      * @todo Add a logger and log the exception.
+     *
+     * @return void
      */
     protected function loadRouteCollection()
     {
@@ -287,8 +290,10 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
                     );
 
                     array_walk($entries, function ($entry) {
-                        $this->collection->add($this->getRouteNameForEntry($entry),
-                            new Route($entry[$this->slugField]));
+                        $this->collection->add(
+                            $this->getRouteNameForEntry($entry),
+                            new Route($entry[$this->slugField])
+                        );
                     });
                 } catch (NotFoundException $clientException) {
                     // Do nothing at the moment with an error by the contentful sdk
@@ -313,9 +318,10 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
      * If the matcher can not find information, it must throw one of the exceptions documented below.
      *
      * @param Request $request The request to match
-     * @return array An array of parameters
      * @throws ResourceNotFoundException If no matching resource could be found
      * @todo ErrorManagement
+     *
+     * @return array An array of parameters
      */
     public function matchRequest(Request $request): array
     {
@@ -346,6 +352,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
      * Sets the request context.
      *
      * @param RequestContext $context The context
+     *
      * @return ContentfulSlugMatcher
      */
     public function setContext(RequestContext $context): ContentfulSlugMatcher
@@ -359,6 +366,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
      * Sets the id of the field with the logica name of the controller.
      *
      * @param string $controllerField
+     *
      * @return ContentfulSlugMatcher
      */
     protected function setControllerField(string $controllerField): ContentfulSlugMatcher

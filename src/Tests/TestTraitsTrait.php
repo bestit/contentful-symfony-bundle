@@ -42,7 +42,7 @@ trait TestTraitsTrait
      * Checks if the trait is used.
      *
      * @param string $traitName
-     * @param $object
+     * @param mixed $object
      *
      * @return mixed
      */

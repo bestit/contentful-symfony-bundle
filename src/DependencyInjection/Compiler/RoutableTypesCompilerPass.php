@@ -7,16 +7,18 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**
  * Reads the content types which have the matching routable field and saves their ids as a parameter.
+ *
  * @author lange <lange@bestit-online.de>
- * @package BestIt\ContentfulBundle
+ * @package BestIt\ContentfulBundle\DependencyInjection\Compiler
  * @subpackage DependencyInjection\Compiler
- * @version $id$
  */
 class RoutableTypesCompilerPass implements CompilerPassInterface
 {
     /**
      * Process the containerbuilder.
+     *
      * @param ContainerBuilder $container
+     *
      * @return void
      */
     public function process(ContainerBuilder $container)

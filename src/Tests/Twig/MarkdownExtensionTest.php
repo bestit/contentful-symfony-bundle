@@ -9,6 +9,7 @@ use Twig_SimpleFilter;
 
 /**
  * Tests the markdown extension.
+ *
  * @author lange <lange@bestit-online.de>
  * @package BestIt\ContentfulBundle\Tests\Twig
  */
@@ -16,12 +17,14 @@ class MarkdownExtensionTest extends TestCase
 {
     /**
      * The tested class.
+     *
      * @var MarkdownExtension|null
      */
     protected $fixture;
 
     /**
      * Sets up the test.
+     *
      * @return void
      */
     protected function setUp()
@@ -31,6 +34,7 @@ class MarkdownExtensionTest extends TestCase
 
     /**
      * Checks if the filters are returned correctly.
+     *
      * @return void
      */
     public function testGetFiltersSuccess()
@@ -51,6 +55,7 @@ class MarkdownExtensionTest extends TestCase
 
     /**
      * Checks if the html is parsed correctly.
+     *
      * @return void
      */
     public function testParseMarkdownSimple()

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace BestIt\ContentfulBundle\Service\Delivery;
 
-use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\CacheTTLAwareTrait;
+use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\ClientEvents;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use Contentful\Delivery\Asset;
@@ -28,7 +28,7 @@ use function sprintf;
  *
  * @author lange <lange@bestit-online.de>
  * @method Asset getAsset(string $id, string | null $locale = null)
- * @package BestIt\ContentfulBundle\Service
+ * @package BestIt\ContentfulBundle\Service\Delivery
  */
 class ClientDecorator implements LoggerAwareInterface
 {
@@ -85,6 +85,7 @@ class ClientDecorator implements LoggerAwareInterface
      *
      * @param string $method
      * @param array $args
+     *
      * @return mixed
      */
     public function __call(string $method, array $args = [])
@@ -108,6 +109,7 @@ class ClientDecorator implements LoggerAwareInterface
      * @param callable $buildQuery
      * @param bool|string $cacheId
      * @param ResponseParserInterface $parser
+     *
      * @return array
      */
     public function getEntries(
@@ -192,6 +194,7 @@ class ClientDecorator implements LoggerAwareInterface
      *
      * @param string $id
      * @param ResponseParserInterface|null $parser
+     *
      * @return array
      */
     public function getEntry(string $id, ResponseParserInterface $parser = null): array

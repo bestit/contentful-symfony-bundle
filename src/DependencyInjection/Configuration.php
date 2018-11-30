@@ -164,11 +164,11 @@ class Configuration implements ConfigurationInterface
     /**
      * Adds the content types to the contentful config.
      *
-     * @return ArrayNodeDefinition
-     *
-     * @todo https://www.contentful.com/developers/docs/references/content-management-api/#/reference/content-types
      * @todo https://www.contentful.com/developers/docs/references/content-management-api/#/reference/editor-interface
+     * @todo https://www.contentful.com/developers/docs/references/content-management-api/#/reference/content-types
      * @todo Not Every Field Type, Content Type, Asset, Editor Interface etc. is tested.
+     *
+     * @return ArrayNodeDefinition
      */
     protected function getContentTypes(): ArrayNodeDefinition
     {

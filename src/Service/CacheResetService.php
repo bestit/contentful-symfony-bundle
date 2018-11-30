@@ -6,8 +6,8 @@ namespace BestIt\ContentfulBundle\Service;
 
 use BestIt\ContentfulBundle\Routing\ContentfulSlugMatcher;
 use Psr\Cache\CacheItemPoolInterface;
-use stdClass;
 use Symfony\Component\Cache\Adapter\TagAwareAdapterInterface;
+use stdClass;
 use function func_num_args;
 use function strtolower;
 
@@ -87,6 +87,7 @@ class CacheResetService
      * Should the complete cache be reset?
      *
      * @param bool $newStatus The new status.
+     *
      * @return bool The old status.
      */
     private function withCompleteReset(bool $newStatus = false): bool

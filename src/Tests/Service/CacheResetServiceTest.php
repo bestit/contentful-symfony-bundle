@@ -8,8 +8,8 @@ use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\Service\CacheResetService;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
-use stdClass;
 use Symfony\Component\Cache\Adapter\TagAwareAdapter;
+use stdClass;
 use function uniqid;
 
 /**
@@ -22,6 +22,7 @@ class CacheResetServiceTest extends TestCase
 {
     /**
      * Checks if the entry cache is reset correctly.
+     *
      * @return void
      */
     public function testResetEntryCacheSuccess()
@@ -67,6 +68,7 @@ class CacheResetServiceTest extends TestCase
 
     /**
      * Checks if the service does nothing if the entry type is not correct.
+     *
      * @return void
      */
     public function testResetEntryCacheWrongType()
@@ -86,6 +88,7 @@ class CacheResetServiceTest extends TestCase
 
     /**
      * Checks that the whole content cache is cleared if configured.
+     *
      * @return void
      */
     public function testThatWholeCacheIsCleared()

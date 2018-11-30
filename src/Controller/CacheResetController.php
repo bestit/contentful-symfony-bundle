@@ -3,29 +3,31 @@
 namespace BestIt\ContentfulBundle\Controller;
 
 use BestIt\ContentfulBundle\Service\CacheResetService;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
 
 /**
  * Controller to reset the cache for contentful.
+ *
  * @author lange <lange@bestit-online.de>
- * @package BestIt\ContentfulBundle
+ * @package BestIt\ContentfulBundle\Controller
  * @subpackage Service
- * @version $id$
  */
 class CacheResetController extends Controller
 {
     /**
      * The cache reset service.
+     *
      * @var CacheResetService
      */
     protected $resetService = null;
 
     /**
      * Returns the reset service.
+     *
      * @return CacheResetService
      */
     public function getResetService(): CacheResetService
@@ -39,9 +41,11 @@ class CacheResetController extends Controller
 
     /**
      * Reacts on the contentful request.
+     *
      * @param Request $request
      * @Route("reset")
      * @Security("has_role('ROLE_USER')")
+     *
      * @return Response
      */
     public function postAction(Request $request): Response
@@ -57,6 +61,7 @@ class CacheResetController extends Controller
 
     /**
      * @param CacheResetService $resetService
+     *
      * @return CacheResetController
      */
     public function setResetService(CacheResetService $resetService): CacheResetController

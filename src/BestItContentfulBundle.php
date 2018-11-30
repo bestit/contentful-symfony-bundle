@@ -8,14 +8,15 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
 
 /**
  * Class BestItContentfulBundle
+ *
  * @author lange <lange@bestit-online.de>
  * @package BestIt\ContentfulBundle
- * @version $id$
  */
 class BestItContentfulBundle extends Bundle
 {
     /**
      * Build dependency container
+     *
      * @param ContainerBuilder $container
      */
     public function build(ContainerBuilder $container)

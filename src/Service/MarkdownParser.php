@@ -6,15 +6,16 @@ use Parsedown;
 
 /**
  * Helper to render the markdown.
+ *
  * @author lange <lange@bestit-online.de>
- * @package BestIt\ContentfulBundle
+ * @package BestIt\ContentfulBundle\Service
  * @subpackage Service
- * @version $id$
  */
 class MarkdownParser
 {
     /**
      * The markdown parser.
+     *
      * @var Parsedown
      */
     protected $parser;
@@ -29,6 +30,7 @@ class MarkdownParser
 
     /**
      * Returns the parser.
+     *
      * @return Parsedown
      */
     protected function getParser(): Parsedown
@@ -38,7 +40,9 @@ class MarkdownParser
 
     /**
      * Sets the parser.
+     *
      * @param Parsedown $parser
+     *
      * @return MarkdownParser
      */
     protected function setParser(Parsedown $parser): MarkdownParser
@@ -50,7 +54,9 @@ class MarkdownParser
 
     /**
      * Parses the markdown.
+     *
      * @param string $text
+     *
      * @return string
      */
     public function toHtml(string $text): string

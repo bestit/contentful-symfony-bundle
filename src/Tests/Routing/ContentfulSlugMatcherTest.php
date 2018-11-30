@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace BestIt\ContentfulBundle\Tests\Routing;
 
-use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\CacheTTLAwareTrait;
+use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use BestIt\ContentfulBundle\Routing\ContentfulSlugMatcher;
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
@@ -75,6 +75,7 @@ class ContentfulSlugMatcherTest extends TestCase
 
     /**
      * Returns the names of the used traits.
+     *
      * @return array
      */
     protected function getUsedTraitNames(): array
@@ -324,6 +325,11 @@ class ContentfulSlugMatcherTest extends TestCase
         );
     }
 
+    /**
+     * Checks if the request is matched but the cache ignored.
+     *
+     * @return void
+     */
     public function testMatchRequestSuccessButIgnoreCache()
     {
         $request = $this->createMock(Request::class);

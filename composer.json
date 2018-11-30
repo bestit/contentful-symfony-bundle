@@ -32,8 +32,8 @@
         "erusev/parsedown": "^1.6"
     },
     "require-dev": {
-        "squizlabs/php_codesniffer": "^2.7",
         "matthiasnoback/symfony-dependency-injection-test": "^1",
-        "phpunit/phpunit": "^5"
+        "phpunit/phpunit": "^5",
+        "bestit/php_codesniffer": "^1.0"
     }
 }

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace BestIt\ContentfulBundle\Tests\Service\Delivery;
 
-use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\CacheTTLAwareTrait;
+use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\ClientEvents;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
@@ -19,6 +19,7 @@ use Doctrine\Common\Cache\ArrayCache;
 use PHPUnit\Framework\TestCase;
 use PHPUnit_Framework_MockObject_MockObject;
 use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Cache\Adapter\DoctrineAdapter;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
@@ -95,7 +96,7 @@ class ClientDecoratorTest extends TestCase
             $this->client = $this->createMock(Client::class),
             new DoctrineAdapter(new ArrayCache()),
             $this->eventDispatcher = $this->createMock(EventDispatcherInterface::class),
-            $this->createMock(\Psr\Log\LoggerInterface::class),
+            $this->createMock(LoggerInterface::class),
             $this->parser = $this->createMock(ResponseParserInterface::class)
         );
     }
@@ -120,6 +121,7 @@ class ClientDecoratorTest extends TestCase
      * Checks if the entries getter is cached and its response simplified.
      *
      * @param ResponseParserInterface $parser
+     *
      * @return void
      */
     public function testGetEntriesFullWithCache(ResponseParserInterface $parser = null)
@@ -172,6 +174,7 @@ class ClientDecoratorTest extends TestCase
      * Checks if the entries getter is not cached and its response simplified.
      *
      * @param ResponseParserInterface $parser
+     *
      * @return void
      */
     public function testGetEntriesFullWithoutCache(ResponseParserInterface $parser = null)
@@ -224,6 +227,7 @@ class ClientDecoratorTest extends TestCase
      * Checks if the entry getter is cached and its response simplified.
      *
      * @param ResponseParserInterface $parser
+     *
      * @return void
      */
     public function testGetEntryFull(ResponseParserInterface $parser = null)
@@ -252,8 +256,11 @@ class ClientDecoratorTest extends TestCase
             ->with(ClientEvents::LOAD_CONTENTFUL_ENTRY, $this->isInstanceOf(GenericEvent::class));
 
         static::assertSame($result, $this->fixture->getEntry($id), 'The first response was not correct.');
-        static::assertSame($result, $this->fixture->getEntry($id),
-            'The second response should be cached and the same.');
+        static::assertSame(
+            $result,
+            $this->fixture->getEntry($id),
+            'The second response should be cached and the same.'
+        );
     }
 
     /**
@@ -272,8 +279,10 @@ class ClientDecoratorTest extends TestCase
         {
             /**
              * Magical getter to make the protecteds public.
+             *
              * @param string $method
              * @param array $args
+             *
              * @return mixed
              */
             public function __call(string $method, array $args = [])

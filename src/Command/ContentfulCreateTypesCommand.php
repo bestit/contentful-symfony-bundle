@@ -13,16 +13,17 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Class ContentfulCreateTypesCommand
+ *
  * @author lange <lange@bestit-online.de>
- * @package BestIt\ContentfulBundle
+ * @package BestIt\ContentfulBundle\Command
  * @subpackage Command
  * @todo Refactor and unittest.
- * @version $id$
  */
 class ContentfulCreateTypesCommand extends ContainerAwareCommand
 {
     /**
      * Configures this command.
+     *
      * @return void
      */
     protected function configure()
@@ -36,8 +37,10 @@ class ContentfulCreateTypesCommand extends ContainerAwareCommand
 
     /**
      * Executes the command.
+     *
      * @param InputInterface $input
      * @param OutputInterface $output
+     *
      * @return void
      */
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -63,7 +66,7 @@ class ContentfulCreateTypesCommand extends ContainerAwareCommand
         $table->setHeaders(['type', 'status']);
 
         foreach ($status as $typeId => $typeStatus) {
-            if ($error = (bool)$typeStatus) {
+            if ($error = (bool) $typeStatus) {
                 $return = 1;
             }
 
@@ -83,7 +86,9 @@ class ContentfulCreateTypesCommand extends ContainerAwareCommand
 
     /**
      * Extracts the controls for the field.
+     *
      * @param array $settings
+     *
      * @return array
      */
     protected function extractFieldControls(array $settings):array
@@ -106,7 +111,9 @@ class ContentfulCreateTypesCommand extends ContainerAwareCommand
 
     /**
      * Returns a contentful client for the management api.
+     *
      * @param string $key
+     *
      * @return Client
      */
     protected function getContentfulClient(string $key):Client
@@ -122,9 +129,11 @@ class ContentfulCreateTypesCommand extends ContainerAwareCommand
 
     /**
      * Returns a version of the content type.
+     *
      * @param Client $client
      * @param string $space
      * @param string $typeId
+     *
      * @return void|int
      */
     protected function getVersionOfContentType(Client $client, string $space, string $typeId)
@@ -146,9 +155,11 @@ class ContentfulCreateTypesCommand extends ContainerAwareCommand
 
     /**
      * Returns the version for the editor interface.
+     *
      * @param Client $client
      * @param string $space
      * @param string $typeId
+     *
      * @return int
      */
     protected function getVersionOfEditorInterface(Client $client, string $space, string $typeId): int
@@ -158,6 +169,13 @@ class ContentfulCreateTypesCommand extends ContainerAwareCommand
         return json_decode($interfaceResponse->getBody()->getContents())->sys->version;
     }
 
+    /**
+     * Moves the id from the array key to an array value.
+     *
+     * @param array $structure
+     *
+     * @return array
+     */
     protected function moveIdFromKeyToValue(array $structure): array
     {
         array_walk($structure, function (&$contentType, $typeId) {
@@ -175,10 +193,12 @@ class ContentfulCreateTypesCommand extends ContainerAwareCommand
 
     /**
      * Publishes the given content type.
+     *
      * @param Client $client
      * @param int $oldVersion
      * @param string $space
      * @param string $typeId
+     *
      * @return void
      */
     protected function publishContentType(Client $client, int $oldVersion, string $space, string $typeId)
@@ -194,10 +214,12 @@ class ContentfulCreateTypesCommand extends ContainerAwareCommand
 
     /**
      * Saves the content type in contentful.
+     *
      * @param Client $client
      * @param array $settings
      * @param string $space
      * @param string $typeId
+     *
      * @return int|void
      */
     protected function setContentType(Client $client, array $settings, string $space, string $typeId)
@@ -230,10 +252,12 @@ class ContentfulCreateTypesCommand extends ContainerAwareCommand
 
     /**
      * Saves the content types in contentful.
+     *
      * @param array $structure
      * @param Client $client
      * @param ProgressBar $bar
      * @param string $space
+     *
      * @return array
      */
     protected function setContentTypes(array $structure, Client $client, ProgressBar $bar, string $space): array
@@ -253,7 +277,7 @@ class ContentfulCreateTypesCommand extends ContainerAwareCommand
 
                 $oldVersion = $this->setContentType($client, $settings, $space, $typeId);
 
-                $this->publishContentType($client, (int)$oldVersion, $space, $typeId);
+                $this->publishContentType($client, (int) $oldVersion, $space, $typeId);
 
                 if ($controls) {
                     $this->updateEditorInterface($client, $controls, $space, $typeId);
@@ -274,7 +298,9 @@ class ContentfulCreateTypesCommand extends ContainerAwareCommand
 
     /**
      * Sorts for the dependencies.
+     *
      * @param array $settings
+     *
      * @return array
      */
     protected function sortTypeDepsToTop(array $settings): array
@@ -324,10 +350,14 @@ class ContentfulCreateTypesCommand extends ContainerAwareCommand
     }
 
     /**
+     * Updates the editor interface for the given type.
+     *
      * @param Client $client
      * @param array $controls
      * @param string $space
      * @param string $typeId
+     *
+     * @return void
      */
     protected function updateEditorInterface(Client $client, array $controls, string $space, string $typeId)
     {
@@ -339,6 +369,13 @@ class ContentfulCreateTypesCommand extends ContainerAwareCommand
         ]);
     }
 
+    /**
+     * Removes the empty things from the validation arrays.
+     *
+     * @param array $field
+     *
+     * @return void
+     */
     protected function cleanValidations(array &$field)
     {
         if (array_key_exists('validations', $field) && $field['validations']) {
