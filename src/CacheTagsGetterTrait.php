@@ -56,12 +56,12 @@ trait CacheTagsGetterTrait
                 $tags[] = $this->getRoutingCacheId($slugField);
             }
 
-            array_walk($fields, function (ContentTypeField $field) use ($contentfulResult, &$tags) {
+            foreach ($fields as $field) {
                 $tags = array_merge(
                     $tags,
                     $this->getCacheTags($contentfulResult->{'get' . ucfirst($field->getId())}())
                 );
-            });
+            }
         } else {
             if ((is_array($contentfulResult)) || ($contentfulResult instanceof Traversable)) {
                 foreach ($contentfulResult as $entry) {
