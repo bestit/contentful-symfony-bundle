@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use PHPUnit_Framework_MockObject_MockObject;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 use Symfony\Contracts\Cache\ItemInterface;
@@ -116,7 +117,6 @@ class CachingContentfulSlugMatcherTest extends TestCase
      */
     public function testMatchRequestSuccess(bool $withCacheUsage = true, Request $request = null)
     {
-
         if (!$request) {
             $request = $this->createMock(Request::class);
         }
@@ -338,6 +338,68 @@ class CachingContentfulSlugMatcherTest extends TestCase
         ];
 
         static::assertEquals($result, $this->fixture->matchRequest($request));
+    }
+
+    /**
+     * Test match request with empty entry result
+     *
+     * @return void
+     */
+    public function testMatchRequestWithEmptyEntryResult()
+    {
+        $request = $this->createMock(Request::class);
+
+        $this->fixture
+            ->setCacheTTL($ttl = mt_rand(1, 10000))
+            ->setRoutableTypes(['unusedType']);
+
+        $request
+            ->expects(static::once())
+            ->method('getRequestUri')
+            ->willReturn($slug = '/' . uniqid());
+
+        $this->cache
+            ->expects(static::once())
+            ->method('getItem')
+            ->with($cacheTag = md5($slug) . '-contentful-routing')
+            ->willReturn($cacheItem = $this->createMock(ItemInterface::class));
+
+        $cacheItem
+            ->expects(static::once())
+            ->method('isHit')
+            ->willReturn(false);
+
+        $this->client
+            ->expects(static::once())
+            ->method('getEntries')
+            ->with(
+                static::callback(function (Query $query) use ($slug) {
+                    static::assertSame(
+                        [
+                            'limit' => 1,
+                            'skip' => null,
+                            'content_type' => 'unusedType',
+                            'mimetype_group' => null,
+                            'fields.' . $this->slugField => $slug,
+                            'include' => $this->matchingLevel
+                        ],
+                        $query->getQueryData()
+                    );
+
+                    return true;
+                })
+            )
+            ->willReturn($emptyEntries = $this->createMock(ResourceArray::class));
+
+        $emptyEntries
+            ->expects(static::once())
+            ->method('count')
+            ->willReturn(0);
+
+
+        static::expectException(ResourceNotFoundException::class);
+
+        $this->fixture->matchRequest($request);
     }
 
     /**

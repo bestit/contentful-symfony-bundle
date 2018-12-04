@@ -84,7 +84,9 @@ class CachingContentfulSlugMatcher extends ContentfulSlugMatcher
 
     /**
      * @param string $requestUri
+     *
      * @throws InvalidArgumentException
+     * @throws ResourceNotFoundException If no matching resource could be found
      *
      * @return array|mixed|null
      */
