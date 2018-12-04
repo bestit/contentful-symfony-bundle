@@ -64,7 +64,8 @@ class BestItContentfulExtension extends Extension
             'best_it_contentful.cache.pool.routing' => $config['caching']['routing']['service_id'],
             'best_it_contentful.event_dispatcher' => $config['event_dispatcher'],
             'best_it_contentful.logger' => $config['logger'],
-            'best_it_contentful.client' => $config['client']
+            'best_it_contentful.client' => $config['client'],
+            'best_it_contentful.delivery.response_parser' => 'best_it_contentful.delivery.response_parser.default'
         ]);
     }
 }

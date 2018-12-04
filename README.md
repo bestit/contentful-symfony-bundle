@@ -200,7 +200,29 @@ if (is_scalar($where)) {
 ### Router ###
 
 We provide you with a router if you want to match contentful elements directly through the url to a controller action
- of your app. Just register our Slug-Matcher with your [CMF-Routing-Chain](https://symfony.com/doc/current/cmf/components/routing/chain.html):
+ of your app. Just register our Slug-Matcher with your [CMF-Routing-Chain](https://symfony.com/doc/current/cmf/components/routing/chain.html)
+ 
+ You may choose between the caching Slug-Matcher with this service declaration:
+ 
+```yaml
+services: 
+ app.router.contentful:
+     class: BestIt\ContentfulBundle\Routing\CachingContentfulSlugMatcher
+     public: false
+     arguments:
+         - '@best_it_contentful.cache.pool.routing'
+         - '@contentful.delivery.contentful_client'
+         - '%best_it_contentful.controller_field%'
+         - '%best_it_contentful.routing_field%'
+         - '@best_it_contentful.routing.route_collection_response_parser'
+         - '@best_it_contentful.delivery.response_parser'
+         - '%best_it_contentful.cache.parameter_against_routing_cache%'
+     calls:
+         - [setRoutableTypes, ['%best_it_contentful.routable_types%']]
+     tags:
+         - { name: router, priority: 0 }  # Adjusted to not override the manual routing done by Symfony
+```
+ Or the non caching Slug-Matcher:
  
 ```yaml
 services: 
@@ -208,17 +230,18 @@ services:
         class: BestIt\ContentfulBundle\Routing\ContentfulSlugMatcher
         public: false
         arguments:
-            - '@best_it_contentful.cache.pool.routing'
             - '@best_it_contentful.delivery.client'
             - '%best_it_contentful.controller_field%'
             - '%best_it_contentful.routing_field%'
             - '@best_it_contentful.routing.route_collection_response_parser'
-            - '%best_it_contentful.cache.parameter_against_routing_cache%'
         calls:
             - [setRoutableTypes, ['%best_it_contentful.routable_types%']]
         tags:
             - { name: router, priority: 0 }  # Adjusted to not override the manual routing done by Symfony
 ```
+
+Note that the CachingContentfulSlugMatcher passes the data to your controller as an array, 
+while the non caching ContentfulSlugMatcher passes contentfuls DynamicEntry
 
 ### View-Helper
 

@@ -90,7 +90,7 @@ trait CacheTagsGetterTrait
      *
      * @return string
      */
-    private function getRoutingCacheId($slugField): string
+    protected function getRoutingCacheId($slugField): string
     {
         return md5($slugField) . '-contentful-routing';
     }

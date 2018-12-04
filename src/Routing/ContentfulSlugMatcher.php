@@ -4,16 +4,14 @@ declare(strict_types=1);
 
 namespace BestIt\ContentfulBundle\Routing;
 
-use BestIt\ContentfulBundle\CacheTTLAwareTrait;
 use BestIt\ContentfulBundle\CacheTagsGetterTrait;
-use BestIt\ContentfulBundle\ClientDecoratorAwareTrait;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
-use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
+use Contentful\Delivery\Client;
+use Contentful\Delivery\DynamicEntry;
 use Contentful\Delivery\Query;
 use Contentful\Exception\NotFoundException;
 use DomainException;
 use Exception;
-use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Exception\InvalidParameterException;
 use Symfony\Component\Routing\Exception\MissingMandatoryParametersException;
@@ -27,9 +25,6 @@ use Symfony\Component\Routing\RouteCollection;
 use function array_key_exists;
 use function array_map;
 use function array_walk;
-use function current;
-use function method_exists;
-use function strlen;
 
 /**
  * "Router" to match against the contentful slugs.
@@ -40,18 +35,11 @@ use function strlen;
 class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInterface
 {
     use CacheTagsGetterTrait;
-    use CacheTTLAwareTrait;
-    use ClientDecoratorAwareTrait;
 
     /**
-     * @var string The used cache key for creating and tagging the route collection.
+     * @var Client $client The contentful client
      */
-    const COLLECTION_CACHE_KEY = 'route_collection';
-
-    /**
-     * @var CacheItemPoolInterface The possible cache class.
-     */
-    private $cache;
+    protected $client;
 
     /**
      * @var void|RouteCollection The loaded url collection.
@@ -73,19 +61,9 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
     private $controllerField;
 
     /**
-     * @var string If the value of this parameter is true, then the cache is ignored.
-     */
-    private $ignoreCacheKey;
-
-    /**
      * @var int How many levels should be included in contentful if a route machtes?
      */
     private $includeLevelForMatching;
-
-    /**
-     * @var bool Is the routing cache ignored?
-     */
-    private $isCacheIgnored = false;
 
     /**
      * @var ResponseParserInterface The response parser specially for the route collection.
@@ -95,30 +73,24 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
     /**
      * ContentfulSlugMatcher constructor.
      *
-     * @param CacheItemPoolInterface $cache
-     * @param ClientDecorator $client
+     * @param Client $client
      * @param string $controllerField
      * @param string $slugField
      * @param ResponseParserInterface $routeCollectionResponseParser The response parser specially for the route coll.
-     * @param string $ignoreCacheKey If the value of this parameter is true, then the cache is ignored.
      * @param int $includeLevelForMatching How many levels should be included in contentful if a route machtes?
      */
     public function __construct(
-        CacheItemPoolInterface $cache,
-        ClientDecorator $client,
+        Client $client,
         string $controllerField,
         string $slugField,
         ResponseParserInterface $routeCollectionResponseParser,
-        string $ignoreCacheKey = '',
         int $includeLevelForMatching = 10
     ) {
-        $this->cache = $cache;
-        $this->ignoreCacheKey = $ignoreCacheKey;
+        $this->client = $client;
         $this->includeLevelForMatching = $includeLevelForMatching;
         $this->routeCollectionResponseParser = $routeCollectionResponseParser;
 
         $this
-            ->setClientDecorator($client)
             ->setControllerField($controllerField)
             ->setSlugField($slugField);
     }
@@ -173,7 +145,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
     }
 
     /**
-     * Returns the id of the field with the logica name of the controller.
+     * Returns the id of the field with the logical name of the controller.
      *
      * @return string
      */
@@ -188,51 +160,29 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
      * @param string $requestUri
      * @todo Add Support for query. Add helper to create the cache key.
      *
-     * @return array|null
+     * @return DynamicEntry|null
      */
-    private function getMatchingEntry(string $requestUri)
+    protected function getMatchingEntry(string $requestUri)
     {
-        if (strlen($requestUri) > 0 && $requestUri[0] !== '/') {
-            $requestUri = '/' . $requestUri;
-        }
-
-        $requestUri = parse_url($requestUri, PHP_URL_PATH);
-        $cache = $this->cache;
-        $cacheHit = $cache->getItem($this->getRoutingCacheId($requestUri));
         $entry = null;
 
-        if ($this->isCacheIgnored || !$cacheHit->isHit()) {
-            foreach ($this->getRoutableTypes() as $routableType) {
-                $entries = $this->clientDecorator->getEntries(function (Query $query) use ($requestUri, $routableType) {
-                    $query
-                        ->setContentType($routableType)
-                        ->setInclude($this->includeLevelForMatching)
-                        ->setLimit(1)
-                        ->where('fields.' . $this->getSlugField(), $requestUri);
-                });
+        foreach ($this->getRoutableTypes() as $routableType) {
+            $query = new Query();
+            $query
+                ->setContentType($routableType)
+                ->setInclude($this->includeLevelForMatching)
+                ->setLimit(1)
+                ->where('fields.' . $this->getSlugField(), $requestUri);
 
-                if ($entries) {
-                    $entry = current($entries);
-                    break;
-                }
-            }
+            $entries = $this->client->getEntries($query);
 
-            $cacheHit->set($entry);
-
-            if ($cacheTTL = $this->getCacheTTL()) {
-                $cacheHit->expiresAfter($cacheTTL);
-            }
-
-            if (!$this->isCacheIgnored) {
-                if (method_exists($cacheHit, 'tag')) {
-                    $cacheHit->tag($this->getCacheTags($entry));
-                }
-
-                $cache->save($cacheHit);
+            if ($entries->count()) {
+                $entry = $entries->offsetGet(0);
+                break;
             }
         }
 
-        return $cacheHit->get();
+        return $entry;
     }
 
     /**
@@ -270,46 +220,31 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
      */
     protected function loadRouteCollection()
     {
-        $cache = $this->cache;
-        $cacheHit = $cache->getItem(self::COLLECTION_CACHE_KEY);
+        $this->collection = new RouteCollection();
 
-        if ($cacheHit->isHit()) {
-            $this->collection = $cacheHit->get();
-        } else {
-            $this->collection = new RouteCollection();
+        array_map(function (string $routableType) {
+            try {
+                $query = new Query();
+                $query
+                    ->setContentType($routableType)
+                    ->setLimit(1000);
 
-            array_map(function (string $routableType) {
-                try {
-                    $entries = $this->clientDecorator->getEntries(
-                        function (Query $query) use ($routableType) {
-                            $query->setContentType($routableType);
-                            $query->setLimit(1000);
-                        },
-                        '',
-                        $this->routeCollectionResponseParser
+                $entries = $this->client->getEntries($query);
+
+                $entries = $this->routeCollectionResponseParser->toArray($entries);
+
+                array_walk($entries, function ($entry) {
+                    $this->collection->add(
+                        $this->getRouteNameForEntry($entry),
+                        new Route($entry[$this->slugField])
                     );
-
-                    array_walk($entries, function ($entry) {
-                        $this->collection->add(
-                            $this->getRouteNameForEntry($entry),
-                            new Route($entry[$this->slugField])
-                        );
-                    });
-                } catch (NotFoundException $clientException) {
-                    // Do nothing at the moment with an error by the contentful sdk
-                } catch (Exception $exception) {
-                    throw $exception;
-                }
-            }, $this->getRoutableTypes());
-
-            if (method_exists($cacheHit, 'tag')) {
-                // It is easier to add this tag to every entry, then to try to fetch every id, for every possible
-                // contentful entry.
-                $cacheHit->tag(self::COLLECTION_CACHE_KEY);
+                });
+            } catch (NotFoundException $clientException) {
+                // Do nothing at the moment with an error by the contentful sdk
+            } catch (Exception $exception) {
+                throw $exception;
             }
-
-            $cache->save($cacheHit->set($this->collection));
-        }
+        }, $this->getRoutableTypes());
     }
 
     /**
@@ -327,9 +262,9 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
     {
         $requestUri = $request->getRequestUri();
 
-        $this->isCacheIgnored = $this->ignoreCacheKey && (bool) $request->get($this->ignoreCacheKey, false);
-
         if ($requestUri !== '/') {
+            $requestUri = $this->parseRequestUri($requestUri);
+
             if ($entry = $this->getMatchingEntry($requestUri)) {
                 $controllerField = $this->getControllerField();
 
@@ -374,5 +309,23 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
         $this->controllerField = $controllerField;
 
         return $this;
+    }
+
+    /**
+     * Prefixes a slash to the request uri if necessary
+     *
+     * @param string $requestUri
+     *
+     * @return string
+     */
+    private function parseRequestUri(string $requestUri): string
+    {
+        $requestUri = parse_url($requestUri, PHP_URL_PATH);
+
+        if (strlen($requestUri) > 0 && $requestUri[0] !== '/') {
+            $requestUri = '/' . $requestUri;
+        }
+
+        return $requestUri;
     }
 }
