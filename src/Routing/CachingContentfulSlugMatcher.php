@@ -84,20 +84,23 @@ class CachingContentfulSlugMatcher extends ContentfulSlugMatcher
 
     /**
      * @param string $requestUri
+     *
      * @throws InvalidArgumentException
+     * @throws ResourceNotFoundException If no matching resource could be found
      *
      * @return array|mixed|null
      */
     protected function getMatchingEntry(string $requestUri)
     {
-
         $cache = $this->cache;
         $cacheHit = $cache->getItem($this->getRoutingCacheId($requestUri));
 
         $entry = null;
 
         if ($this->isCacheIgnored || !$cacheHit->isHit()) {
-            $entry = parent::getMatchingEntry($requestUri);
+            if (!$entry = parent::getMatchingEntry($requestUri)) {
+                throw new ResourceNotFoundException('Contentful slugs did not match the request.');
+            }
 
             $cacheHit->set($this->simpleResponseParser->toArray($entry));
 
