@@ -241,7 +241,7 @@ services:
 ```
 
 Note that the CachingContentfulSlugMatcher passes the data to your controller as an array, 
-while the non caching ContentfulSlugMatcher passes contentfuls DynamicEntry
+while the non caching ContentfulSlugMatcher passes contentfuls Entry
 
 ### View-Helper
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace BestIt\ContentfulBundle\Routing;
 
 use BestIt\ContentfulBundle\Delivery\SimpleResponseParser;
-use Contentful\Delivery\DynamicEntry;
+use Contentful\Delivery\Resource\Entry;
 use function ucfirst;
 
 /**
@@ -31,11 +31,11 @@ class RouteCollectionResponseParser extends SimpleResponseParser
     /**
      * Skips the childs and returns only the data which is needed for the routing of the direct requested entry.
      *
-     * @param DynamicEntry $entry
+     * @param Entry $entry
      *
      * @return array
      */
-    protected function resolveEntry(DynamicEntry $entry): array
+    protected function resolveEntry(Entry $entry): array
     {
         foreach (['id', 'contentType'] as $key) {
             $return['_' . $key] = $entry->{'get' . ucfirst($key)}();
