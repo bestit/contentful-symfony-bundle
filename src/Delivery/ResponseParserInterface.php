@@ -2,6 +2,9 @@
 
 namespace BestIt\ContentfulBundle\Delivery;
 
+use Contentful\Core\Resource\ResourceArray;
+use Contentful\Delivery\Resource\Entry;
+
 /**
  * Simplifies the delivery response to get it cached.
  *
@@ -17,7 +20,7 @@ interface ResponseParserInterface
     /**
      * Makes a simple array out of the response to cache it and make it more independent.
      *
-     * @param DynamicEntry|ResourceArray|array $result
+     * @param Entry|ResourceArray|array $result
      *
      * @return array
      */

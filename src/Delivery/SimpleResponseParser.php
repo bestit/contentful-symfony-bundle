@@ -2,10 +2,10 @@
 
 namespace BestIt\ContentfulBundle\Delivery;
 
-use Contentful\Delivery\Asset;
-use Contentful\Delivery\ContentTypeField;
-use Contentful\Delivery\DynamicEntry;
-use Contentful\ResourceArray;
+use Contentful\Core\Resource\ResourceArray;
+use Contentful\Delivery\Resource\Asset;
+use Contentful\Delivery\Resource\ContentType\Field;
+use Contentful\Delivery\Resource\Entry;
 
 /**
  * Simplifies the delivery response to get it cached.
@@ -22,18 +22,18 @@ class SimpleResponseParser implements ResponseParserInterface
     /**
      * Reads the values from an entry (and resolves its links) recursively.
      *
-     * @param DynamicEntry $entry
+     * @param Entry $entry
      *
      * @return array
      */
-    protected function resolveEntry(DynamicEntry $entry): array
+    protected function resolveEntry(Entry $entry): array
     {
         foreach (['id', 'createdAt', 'locale', 'revision', 'space', 'contentType', 'updatedAt'] as $key) {
-            $return['_' . $key] = $entry->{'get' . ucfirst($key)}();
+            $return['_' . $key] = $entry->getSystemProperties()->{'get' . ucfirst($key)}();
         }
 
         $fields = $entry->getContentType()->getFields();
-        $return += array_map(function (ContentTypeField $field) use ($entry) {
+        $return += array_map(function (Field $field) use ($entry) {
             $entryValue = $entry->{'get' . ucfirst($field->getId())}();
 
             if (is_array($entryValue)) {
@@ -45,7 +45,7 @@ class SimpleResponseParser implements ResponseParserInterface
 
                     $entryValue = $file ? $file->getUrl() : '';
                 } else {
-                    if ($entryValue instanceof DynamicEntry) {
+                    if ($entryValue instanceof Entry) {
                         $entryValue = $this->resolveEntry($entryValue);
                     }
                 }
@@ -62,16 +62,16 @@ class SimpleResponseParser implements ResponseParserInterface
     /**
      * Makes a simple array out of the response to cache it and make it more independent.
      *
-     * @param DynamicEntry|ResourceArray|array $result
+     * @param Entry|ResourceArray|array $result
      *
      * @return array
      */
     public function toArray($result): array
     {
         $response = [];
-        $isEntry = $result instanceof DynamicEntry;
+        $isEntry = $result instanceof Entry;
 
-        /** @var DynamicEntry $entry */
+        /** @var Entry $entry */
         foreach ($isEntry ? [$result] : $result as $key => $entry) {
             $response[$key] = is_scalar($entry) ? $entry : $this->resolveEntry($entry);
         }

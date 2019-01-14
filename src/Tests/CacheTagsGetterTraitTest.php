@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace BestIt\ContentfulBundle\Tests;
 
 use BestIt\ContentfulBundle\CacheTagsGetterTrait;
-use Contentful\Delivery\ContentType;
-use Contentful\Delivery\ContentTypeField;
-use Contentful\Delivery\DynamicEntry;
-use Contentful\Delivery\Locale;
-use Contentful\Delivery\Space;
+use Contentful\Core\Resource\ResourceArray;
+use Contentful\Delivery\Resource\ContentType;
+use Contentful\Delivery\Resource\ContentType\Field;
+use Contentful\Delivery\Resource\Entry;
+use Contentful\Delivery\Resource\Locale;
+use Contentful\Delivery\Resource\Space;
 use Contentful\Delivery\SystemProperties;
-use Contentful\ResourceArray;
 use PHPUnit\Framework\TestCase;
+use ReflectionException;
 use function md5;
 use function uniqid;
 
@@ -72,38 +73,43 @@ class CacheTagsGetterTraitTest extends TestCase
     {
         $this->fixture
             ->setRoutableTypes([$type = uniqid()])
-            ->setSlugField('slug');
+            ->setSlugField($slugField = 'slug');
 
         $resources = new ResourceArray(
-            [new DynamicEntry(
-                $fields = [
-                    'slug' => [null => $slugValue = uniqid()],
-                    'title' => [null => $titleValue = uniqid()]
-                ],
-                new SystemProperties(
-                    $id = uniqid(),
-                    'sys',
-                    new Space(
-                        uniqid(),
-                        [new Locale('de', 'german', 'en')],
-                        new SystemProperties(uniqid(), uniqid())
-                    ),
-                    new ContentType(
-                        uniqid(),
-                        uniqid(),
-                        [
-                            new ContentTypeField('slug', 'Slug', 'Symbol'),
-                            new ContentTypeField('title', 'Title', 'Symbol')
-                        ],
-                        'title',
-                        new SystemProperties($type, uniqid())
-                    )
-                )
-            )],
+            [$entry = $this->createMock(Entry::class)],
             1,
             1,
             0
         );
+
+        $entry
+            ->expects(static::once())
+            ->method('getId')
+            ->willReturn($id = uniqid());
+
+        $entry
+            ->expects(static::once())
+            ->method('getContentType')
+            ->willReturn($contentType = $this->createMock(ContentType::class));
+
+        $entry
+            ->expects(static::once())
+            ->method('offsetGet')
+            ->with(ucfirst($slugField))
+            ->willReturn($slugValue = uniqid());
+
+        $contentType
+            ->expects(static::once())
+            ->method('getFields')
+            ->willReturn([
+                new Field('slug', 'Slug', 'Symbol'),
+                new Field('title', 'Title', 'Symbol')
+            ]);
+
+        $contentType
+            ->expects(static::once())
+            ->method('getId')
+            ->willReturn($type);
 
         static::assertSame(
             [$id, md5($slugValue) . '-contentful-routing'],

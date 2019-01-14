@@ -9,11 +9,12 @@ use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use BestIt\ContentfulBundle\Routing\ContentfulSlugMatcher;
 use BestIt\ContentfulBundle\Tests\TestTraitsTrait;
+use Contentful\Core\Exception\NotFoundException;
+use Contentful\Core\Resource\ResourceArray;
 use Contentful\Delivery\Client;
-use Contentful\Delivery\ContentType;
 use Contentful\Delivery\Query;
-use Contentful\Exception\NotFoundException;
-use Contentful\ResourceArray;
+use Contentful\Delivery\Resource\ContentType;
+use Contentful\Delivery\Resource\Entry;
 use PHPUnit\Framework\TestCase;
 use PHPUnit_Framework_MockObject_MockObject;
 use Symfony\Component\HttpFoundation\Request;
@@ -191,11 +192,15 @@ class ContentfulSlugMatcherTest extends TestCase
                     static::callback(function (Query $query) use ($slug) {
                         static::assertSame(
                             [
+                                'fields.' . $this->slugField => $slug,
                                 'limit' => 1,
                                 'skip' => null,
                                 'content_type' => 'unusedType',
                                 'mimetype_group' => null,
-                                'fields.' . $this->slugField => $slug,
+                                'order' => null,
+                                'select' => null,
+                                'links_to_entry' => null,
+                                'links_to_asset' => null,
                                 'include' => $this->matchingLevel
                             ],
                             $query->getQueryData()
@@ -208,11 +213,15 @@ class ContentfulSlugMatcherTest extends TestCase
                     static::callback(function (Query  $query) use ($slug) {
                         static::assertSame(
                             [
+                                'fields.' . $this->slugField => $slug,
                                 'limit' => 1,
                                 'skip' => null,
                                 'content_type' => 'usedType',
                                 'mimetype_group' => null,
-                                'fields.' . $this->slugField => $slug,
+                                'order' => null,
+                                'select' => null,
+                                'links_to_entry' => null,
+                                'links_to_asset' => null,
                                 'include' => $this->matchingLevel
                             ],
                             $query->getQueryData()
@@ -240,12 +249,17 @@ class ContentfulSlugMatcherTest extends TestCase
             ->expects(static::once())
             ->method('offsetGet')
             ->with(0)
-            ->willReturn($entry = [
-                '_contentType' => $contentType = $this->createMock(ContentType::class),
-                '_id' => $id = uniqid(),
-                $this->slugField => $slug,
-                $this->controllerField => $controller = uniqid()
-            ]);
+            ->willReturn($entry = $this->createMock(Entry::class));
+
+        $entry
+            ->expects(static::exactly(3))
+            ->method('offsetGet')
+            ->withConsecutive([$this->controllerField], ['_contentType'], ['_id'])
+            ->willReturnOnConsecutiveCalls(
+                $controller = uniqid(),
+                $contentType = $this->createMock(ContentType::class),
+                $id = uniqid()
+            );
 
         $contentType
             ->expects(static::once())

@@ -5,14 +5,12 @@ declare(strict_types=1);
 namespace BestIt\ContentfulBundle;
 
 use BestIt\ContentfulBundle\Routing\RoutableTypesAwareTrait;
-use Contentful\Delivery\ContentTypeField;
-use Contentful\Delivery\DynamicEntry;
-use Contentful\ResourceArray;
+use Contentful\Core\Resource\ResourceArray;
+use Contentful\Delivery\Resource\Entry;
 use Traversable;
 use function array_filter;
 use function array_merge;
 use function array_unique;
-use function array_walk;
 use function in_array;
 use function md5;
 use function ucfirst;
@@ -37,7 +35,7 @@ trait CacheTagsGetterTrait
      *
      * This method adds the default tags to every tag collection.
      *
-     * @param DynamicEntry|ResourceArray|array|mixed $contentfulResult The result for a contentful query.
+     * @param Entry|ResourceArray|array|mixed $contentfulResult The result for a contentful query.
      *
      * @return array
      */
@@ -45,14 +43,14 @@ trait CacheTagsGetterTrait
     {
         $tags = $this->getDefaultTags();
 
-        if ($contentfulResult instanceof DynamicEntry) {
+        if ($contentfulResult instanceof Entry) {
             $tags[] = $contentfulResult->getId();
             $contentType = $contentfulResult->getContentType();
             $fields = $contentType->getFields() ?: [];
 
-            if ((in_array($contentType->getId(), $this->getRoutableTypes()) &&
+            if (in_array($contentType->getId(), $this->getRoutableTypes()) &&
                 ($slugFieldName = $this->getSlugField()) &&
-                ($slugField = $contentfulResult->{'get' . ucfirst($slugFieldName)}()))) {
+                ($slugField = $contentfulResult[ucfirst($slugFieldName)])) {
                 $tags[] = $this->getRoutingCacheId($slugField);
             }
 

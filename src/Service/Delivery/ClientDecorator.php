@@ -8,12 +8,13 @@ use BestIt\ContentfulBundle\CacheTTLAwareTrait;
 use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\ClientEvents;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
-use Contentful\Delivery\Asset;
+use Contentful\Core\Resource\ResourceArray;
 use Contentful\Delivery\Client;
 use Contentful\Delivery\Query;
-use Contentful\ResourceArray;
+use Contentful\Delivery\Resource\Asset;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Cache\CacheItemPoolInterface;
+use Psr\Cache\InvalidArgumentException;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
@@ -111,6 +112,8 @@ class ClientDecorator implements LoggerAwareInterface
      * @param ResponseParserInterface $parser
      *
      * @return array
+     *
+     * @throws InvalidArgumentException
      */
     public function getEntries(
         callable $buildQuery,

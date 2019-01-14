@@ -6,10 +6,10 @@ namespace BestIt\ContentfulBundle\Routing;
 
 use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
+use Contentful\Core\Exception\NotFoundException;
 use Contentful\Delivery\Client;
-use Contentful\Delivery\DynamicEntry;
 use Contentful\Delivery\Query;
-use Contentful\Exception\NotFoundException;
+use Contentful\Delivery\Resource\Entry;
 use DomainException;
 use Exception;
 use Symfony\Component\HttpFoundation\Request;
@@ -160,7 +160,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
      * @param string $requestUri
      * @todo Add Support for query. Add helper to create the cache key.
      *
-     * @return DynamicEntry|null
+     * @return Entry|null
      */
     protected function getMatchingEntry(string $requestUri)
     {
@@ -202,11 +202,11 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
     /**
      * Returns the route name for the given contentful entry.
      *
-     * @param array $entry
+     * @param Entry|array $entry
      *
      * @return string
      */
-    public function getRouteNameForEntry(array $entry)
+    public function getRouteNameForEntry($entry)
     {
         return 'contentful_' . $entry['_contentType']->getId() . '_' . $entry['_id'];
     }
@@ -268,7 +268,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
             if ($entry = $this->getMatchingEntry($requestUri)) {
                 $controllerField = $this->getControllerField();
 
-                if (!((array_key_exists($controllerField, $entry)) && ($controller = $entry[$controllerField]))) {
+                if (!$controller = @$entry[$controllerField]) {
                     throw new DomainException('The found content does not provide a controller field.');
                 }
 

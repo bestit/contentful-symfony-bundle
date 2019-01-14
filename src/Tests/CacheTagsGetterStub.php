@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace BestIt\ContentfulBundle\Tests;
 
 use BestIt\ContentfulBundle\CacheTagsGetterTrait;
-use Contentful\Delivery\DynamicEntry;
+use Contentful\Delivery\Resource\Entry;
 use Traversable;
 
 /**
@@ -21,7 +21,7 @@ class CacheTagsGetterStub
     /**
      * Makes the gtter public.
      *
-     * @param DynamicEntry|Traversable|mixed $contentfulResult
+     * @param Entry|Traversable|mixed $contentfulResult
      *
      * @return array
      */

@@ -10,14 +10,17 @@ use BestIt\ContentfulBundle\ClientEvents;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
 use BestIt\ContentfulBundle\Tests\TestTraitsTrait;
+use Contentful\Core\Resource\ResourceArray;
 use Contentful\Delivery\Client;
-use Contentful\Delivery\ContentType;
-use Contentful\Delivery\ContentTypeField;
-use Contentful\Delivery\DynamicEntry;
 use Contentful\Delivery\Query;
+use Contentful\Delivery\Resource\Asset;
+use Contentful\Delivery\Resource\ContentType;
+use Contentful\Delivery\Resource\ContentType\Field;
+use Contentful\Delivery\Resource\Entry;
 use Doctrine\Common\Cache\ArrayCache;
 use PHPUnit\Framework\TestCase;
 use PHPUnit_Framework_MockObject_MockObject;
+use Psr\Cache\InvalidArgumentException;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Cache\Adapter\DoctrineAdapter;
@@ -66,7 +69,7 @@ class ClientDecoratorTest extends TestCase
         $mockParser
             ->expects($this->once())
             ->method('toArray')
-            ->with($mockEntry = $this->createMock(DynamicEntry::class))
+            ->with($mockEntry = $this->createMock(Entry::class))
             ->willReturn($result = [uniqid()]);
 
         return [
@@ -112,7 +115,7 @@ class ClientDecoratorTest extends TestCase
             ->expects($this->once())
             ->method('getAsset')
             ->with($id = uniqid())
-            ->willReturn($return = uniqid());
+            ->willReturn($return = $this->createMock(Asset::class));
 
         static::assertSame($return, $this->fixture->getAsset($id));
     }
@@ -120,24 +123,29 @@ class ClientDecoratorTest extends TestCase
     /**
      * Checks if the entries getter is cached and its response simplified.
      *
-     * @param ResponseParserInterface $parser
-     *
      * @return void
+     *
+     * @throws InvalidArgumentException
      */
-    public function testGetEntriesFullWithCache(ResponseParserInterface $parser = null)
+    public function testGetEntriesFullWithCache()
     {
-        if (!$parser) {
-            $this->parser
-                ->expects($this->once())
-                ->method('toArray')
-                ->with([$mockEntry = $this->createMock(DynamicEntry::class)])
-                ->willReturn($result = [uniqid()]);
-        }
-
         $this->client
             ->expects($this->once())
             ->method('getEntries')
-            ->willReturn([$mockEntry]);
+            ->willReturn(
+                $resourceArray = new ResourceArray(
+                    [$mockEntry = $this->createMock(Entry::class)],
+                    1,
+                    1,
+                    0
+                )
+            );
+
+        $this->parser
+            ->expects($this->once())
+            ->method('toArray')
+            ->with($resourceArray)
+            ->willReturn($result = [uniqid()]);
 
         $mockEntry
             ->method('getContentType')
@@ -159,7 +167,7 @@ class ClientDecoratorTest extends TestCase
 
         static::assertSame(
             $result,
-            $this->fixture->getEntries($callback, $cacheId = uniqid(), $parser),
+            $this->fixture->getEntries($callback, $cacheId = uniqid(), $this->parser),
             'The first response was not correct.'
         );
 
@@ -173,28 +181,37 @@ class ClientDecoratorTest extends TestCase
     /**
      * Checks if the entries getter is not cached and its response simplified.
      *
-     * @param ResponseParserInterface $parser
-     *
      * @return void
+     *
+     * @throws InvalidArgumentException
      */
-    public function testGetEntriesFullWithoutCache(ResponseParserInterface $parser = null)
+    public function testGetEntriesFullWithoutCache()
     {
-        if (!$parser) {
-            $this->parser
-                ->expects($this->exactly(2))
-                ->method('toArray')
-                ->with([$mockEntry = $this->createMock(DynamicEntry::class)])
-                ->willReturn($result = [uniqid()]);
-        }
+        $this->client
+            ->expects($this->exactly(2))
+            ->method('getEntries')
+            ->willReturn(
+                $resourceArray = new ResourceArray(
+                    [$mockEntry = $this->createMock(Entry::class)],
+                    1,
+                    1,
+                    0
+                )
+            );
+
+        $this->parser
+            ->expects($this->exactly(2))
+            ->method('toArray')
+            ->with($resourceArray)
+            ->willReturn($result = [uniqid()]);
 
         $mockEntry
             ->method('getContentType')
             ->willReturn($mockType = $this->createMock(ContentType::class));
 
-        $this->client
-            ->expects($this->exactly(2))
-            ->method('getEntries')
-            ->willReturn([$mockEntry]);
+        $mockEntry
+            ->method('getContentType')
+            ->willReturn($mockType = $this->createMock(ContentType::class));
 
         $callback = function ($query) {
             static::assertInstanceOf(Query::class, $query);
@@ -236,7 +253,7 @@ class ClientDecoratorTest extends TestCase
             $this->parser
                 ->expects($this->once())
                 ->method('toArray')
-                ->with($mockEntry = $this->createMock(DynamicEntry::class))
+                ->with($mockEntry = $this->createMock(Entry::class))
                 ->willReturn($result = [uniqid()]);
         }
 
@@ -292,7 +309,7 @@ class ClientDecoratorTest extends TestCase
         };
 
         $deep = [
-            $rootEntry = $this->createMock(DynamicEntry::class)
+            $rootEntry = $this->createMock(Entry::class)
         ];
 
         $rootEntry
@@ -302,8 +319,8 @@ class ClientDecoratorTest extends TestCase
                 uniqid(),
                 uniqid(),
                 [
-                    $simpleField = new ContentTypeField('desc', 'desc', 'text'),
-                    $imageField = new ContentTypeField()
+                    $simpleField = new Field('desc', 'desc', 'text'),
+                    $imageField = new Field()
                 ]
             ));
 

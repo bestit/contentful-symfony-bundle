@@ -8,12 +8,12 @@ use BestIt\ContentfulBundle\CacheTTLAwareTrait;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use BestIt\ContentfulBundle\Routing\CachingContentfulSlugMatcher;
 use BestIt\ContentfulBundle\Tests\TestTraitsTrait;
+use Contentful\Core\Exception\NotFoundException;
+use Contentful\Core\Resource\ResourceArray;
 use Contentful\Delivery\Client;
-use Contentful\Delivery\ContentType;
-use Contentful\Delivery\DynamicEntry;
 use Contentful\Delivery\Query;
-use Contentful\Exception\NotFoundException;
-use Contentful\ResourceArray;
+use Contentful\Delivery\Resource\ContentType;
+use Contentful\Delivery\Resource\Entry;
 use PHPUnit\Framework\TestCase;
 use PHPUnit_Framework_MockObject_MockObject;
 use Psr\Cache\CacheItemPoolInterface;
@@ -149,11 +149,15 @@ class CachingContentfulSlugMatcherTest extends TestCase
                     static::callback(function (Query $query) use ($slug) {
                         static::assertSame(
                             [
+                                'fields.' . $this->slugField => $slug,
                                 'limit' => 1,
                                 'skip' => null,
                                 'content_type' => 'unusedType',
                                 'mimetype_group' => null,
-                                'fields.' . $this->slugField => $slug,
+                                'order' => null,
+                                'select' => null,
+                                'links_to_entry' => null,
+                                'links_to_asset' => null,
                                 'include' => $this->matchingLevel
                             ],
                             $query->getQueryData()
@@ -166,11 +170,15 @@ class CachingContentfulSlugMatcherTest extends TestCase
                     static::callback(function (Query  $query) use ($slug) {
                         static::assertSame(
                             [
+                                'fields.' . $this->slugField => $slug,
                                 'limit' => 1,
                                 'skip' => null,
                                 'content_type' => 'usedType',
                                 'mimetype_group' => null,
-                                'fields.' . $this->slugField => $slug,
+                                'order' => null,
+                                'select' => null,
+                                'links_to_entry' => null,
+                                'links_to_asset' => null,
                                 'include' => $this->matchingLevel
                             ],
                             $query->getQueryData()
@@ -198,7 +206,7 @@ class CachingContentfulSlugMatcherTest extends TestCase
             ->expects(static::once())
             ->method('offsetGet')
             ->with(0)
-            ->willReturn($dynamicEntry = $this->createMock(DynamicEntry::class));
+            ->willReturn($dynamicEntry = $this->createMock(Entry::class));
 
         $this->simpleResponseParser
             ->expects(static::once())
@@ -233,7 +241,7 @@ class CachingContentfulSlugMatcherTest extends TestCase
         $contentType
             ->expects($withCacheUsage ? static::once() : static::never())
             ->method('getFields')
-            ->willReturn(null);
+            ->willReturn([]);
 
         $cacheItem
             ->expects(static::once())
@@ -376,11 +384,15 @@ class CachingContentfulSlugMatcherTest extends TestCase
                 static::callback(function (Query $query) use ($slug) {
                     static::assertSame(
                         [
+                            'fields.' . $this->slugField => $slug,
                             'limit' => 1,
                             'skip' => null,
                             'content_type' => 'unusedType',
                             'mimetype_group' => null,
-                            'fields.' . $this->slugField => $slug,
+                            'order' => null,
+                            'select' => null,
+                            'links_to_entry' => null,
+                            'links_to_asset' => null,
                             'include' => $this->matchingLevel
                         ],
                         $query->getQueryData()
