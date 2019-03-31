@@ -165,7 +165,7 @@ class ClientDecorator implements LoggerAwareInterface
 
                 $entries = $parser->toArray($entries);
 
-                $logger->notice(
+                $logger->info(
                     'Found contentful elements.',
                     ['cacheId' => $cacheId, 'entries' => $entries, 'parser' => get_class($parser)]
                 );
@@ -229,7 +229,7 @@ class ClientDecorator implements LoggerAwareInterface
 
                 $entry = $parser->toArray($entry);
 
-                $logger->notice(
+                $logger->info(
                     sprintf('Found contentful element with ID %s.', $id),
                     ['id' => $id, 'entry' => $entry, 'parser' => get_class($parser)]
                 );
