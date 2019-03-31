@@ -89,7 +89,7 @@ class BestItContentfulExtensionTest extends AbstractExtensionTestCase
      *
      * @return void
      */
-    protected function setUp()
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -107,7 +107,7 @@ class BestItContentfulExtensionTest extends AbstractExtensionTestCase
      *
      * @return void
      */
-    public function testDeclaredServices(string $serviceId, string $serviceClass = '', string $tag = '')
+    public function testDeclaredServices(string $serviceId, string $serviceClass = '', string $tag = ''): void
     {
         $this->assertContainerBuilderHasService($serviceId, $serviceClass ?: null);
 
@@ -126,7 +126,7 @@ class BestItContentfulExtensionTest extends AbstractExtensionTestCase
      *
      * @return void
      */
-    public function testDeclaredAliases(string $aliasId, string $serviceId)
+    public function testDeclaredAliases(string $aliasId, string $serviceId): void
     {
         $this->assertContainerBuilderHasAlias($aliasId, $serviceId);
     }

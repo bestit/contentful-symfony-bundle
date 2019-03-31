@@ -20,17 +20,23 @@ use function strtolower;
 class CacheResetService
 {
     /**
-     * @var CacheItemPoolInterface The used cache.
+     * The used cache.
+     *
+     * @var CacheItemPoolInterface
      */
     protected $cache;
 
     /**
-     * @var array Which ids should be resetted everytime.
+     * Which ids should be resetted everytime.
+     *
+     * @var array
      */
     protected $cacheResetIds;
 
     /**
-     * @var bool Should the complete cache be cleared after request.
+     * Should the complete cache be cleared after request.
+     *
+     * @var bool
      */
     private $withCompleteReset = false;
 
@@ -56,7 +62,7 @@ class CacheResetService
      *
      * @return bool
      */
-    public function resetEntryCache(stdClass $entry)
+    public function resetEntryCache(stdClass $entry): bool
     {
         $return = false;
 

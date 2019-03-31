@@ -25,7 +25,7 @@ class CachingContentfulSlugMatcher extends ContentfulSlugMatcher
     /**
      * @var string The used cache key for creating and tagging the route collection.
      */
-    const COLLECTION_CACHE_KEY = 'route_collection';
+    public const COLLECTION_CACHE_KEY = 'route_collection';
 
     /**
      * @var string If the value of this parameter is true, then the cache is ignored.

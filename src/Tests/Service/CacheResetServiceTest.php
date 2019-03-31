@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace BestIt\ContentfulBundle\Tests\Service;
 
-use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\Service\CacheResetService;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
@@ -25,7 +24,7 @@ class CacheResetServiceTest extends TestCase
      *
      * @return void
      */
-    public function testResetEntryCacheSuccess()
+    public function testResetEntryCacheSuccess(): void
     {
         $fixture = new CacheResetService(
             $cache = $this->createMock(TagAwareAdapter::class),
@@ -71,7 +70,7 @@ class CacheResetServiceTest extends TestCase
      *
      * @return void
      */
-    public function testResetEntryCacheWrongType()
+    public function testResetEntryCacheWrongType(): void
     {
         $fixture = new CacheResetService(
             $cache = $this->createMock(CacheItemPoolInterface::class),
@@ -91,7 +90,7 @@ class CacheResetServiceTest extends TestCase
      *
      * @return void
      */
-    public function testThatWholeCacheIsCleared()
+    public function testThatWholeCacheIsCleared(): void
     {
         $fixture = new CacheResetService(
             $cache = $this->createMock(CacheItemPoolInterface::class),

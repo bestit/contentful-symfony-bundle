@@ -15,12 +15,12 @@ final class ClientEvents
      *
      * @var string
      */
-    const LOAD_CONTENTFUL_ENTRIES = 'best_it_contentful.load.entries';
+    public const LOAD_CONTENTFUL_ENTRIES = 'best_it_contentful.load.entries';
 
     /**
      * The event name for loading a contentful entry.
      *
      * @var string
      */
-    const LOAD_CONTENTFUL_ENTRY = 'best_it_contentful.load.entry';
+    public const LOAD_CONTENTFUL_ENTRY = 'best_it_contentful.load.entry';
 }
