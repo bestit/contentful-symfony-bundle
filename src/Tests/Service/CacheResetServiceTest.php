@@ -5,9 +5,14 @@ declare(strict_types=1);
 namespace BestIt\ContentfulBundle\Tests\Service;
 
 use BestIt\ContentfulBundle\Service\CacheResetService;
+use BestIt\ContentfulBundle\Tests\TestTraitsTrait;
 use PHPUnit\Framework\TestCase;
+use PHPUnit_Framework_MockObject_MockObject;
 use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\Cache\Adapter\TagAwareAdapter;
+use Symfony\Component\Cache\Adapter\TagAwareAdapterInterface;
 use stdClass;
 use function uniqid;
 
@@ -19,6 +24,72 @@ use function uniqid;
  */
 class CacheResetServiceTest extends TestCase
 {
+    use TestTraitsTrait;
+
+    /**
+     * The injected cache adapter.
+     *
+     * @var TagAwareAdapterInterface|null|PHPUnit_Framework_MockObject_MockObject
+     */
+    private $cacheAdapter;
+
+    /**
+     * The used cache reset ids.
+     *
+     * @var array|null
+     */
+    private $cacheResetIds;
+
+    /**
+     * An object of the tested class.
+     *
+     * @var CacheResetService|null
+     */
+    protected $fixture;
+
+    /**
+     * Should a full cache reset be done?
+     *
+     * @var bool|null
+     */
+    private $withCompleteReset;
+
+    /**
+     * Returns the names of the used traits.
+     *
+     * @return array
+     */
+    protected function getUsedTraitNames(): array
+    {
+        return [
+            LoggerAwareTrait::class,
+        ];
+    }
+
+    /**
+     * Loads the required object instance.
+     *
+     * @return void
+     */
+    protected function setUp(): void
+    {
+        $this->fixture = new CacheResetService(
+            $this->cacheAdapter = $this->createMock(TagAwareAdapter::class),
+            $this->cacheResetIds = [uniqid(),],
+            $this->withCompleteReset = false
+        );
+    }
+
+    /**
+     * Checks if the required interfaces are implemented.
+     *
+     * @return void
+     */
+    public function testInterfaces(): void
+    {
+        static::assertInstanceOf(LoggerAwareInterface::class, $this->fixture);
+    }
+
     /**
      * Checks if the entry cache is reset correctly.
      *
@@ -26,38 +97,32 @@ class CacheResetServiceTest extends TestCase
      */
     public function testResetEntryCacheSuccess(): void
     {
-        $fixture = new CacheResetService(
-            $cache = $this->createMock(TagAwareAdapter::class),
-            $ids = [uniqid()],
-            false
-        );
-
-        $cache
+        $this->cacheAdapter
             ->expects(static::never())
             ->method('clear');
 
-        $cache
+        $this->cacheAdapter
             ->expects(static::once())
             ->method('deleteItem')
             ->with($id = uniqid());
 
-        $cache
+        $this->cacheAdapter
             ->expects(static::once())
             ->method('deleteItems')
-            ->with($ids);
+            ->with($this->cacheResetIds);
 
-        $cache
+        $this->cacheAdapter
             ->expects(static::once())
             ->method('hasItem')
             ->with($id)
             ->willReturn(true);
 
-        $cache
+        $this->cacheAdapter
             ->expects(static::once())
             ->method('invalidateTags')
             ->with(['route_collection', $id]);
 
-        static::assertTrue($fixture->resetEntryCache((object) [
+        static::assertTrue($this->fixture->resetEntryCache((object) [
             'sys' => (object) [
                 'id' => $id,
                 'type' => 'Entry'
