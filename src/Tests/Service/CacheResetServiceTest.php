@@ -55,6 +55,19 @@ class CacheResetServiceTest extends TestCase
     private $withCompleteReset;
 
     /**
+     * Returns entry types which should be valid for cache resets.
+     *
+     * @return array
+     */
+    public function getUsableEntryTypes(): array
+    {
+        return [
+            'Deleted Entry' => ['DeletedEntry',],
+            'Entry' => ['Entry',],
+        ];
+    }
+
+    /**
      * Returns the names of the used traits.
      *
      * @return array
@@ -93,9 +106,12 @@ class CacheResetServiceTest extends TestCase
     /**
      * Checks if the entry cache is reset correctly.
      *
+     * @dataProvider getUsableEntryTypes
+     * @param string $usableEntryType
+     *
      * @return void
      */
-    public function testResetEntryCacheSuccess(): void
+    public function testResetEntryCacheSuccess(string $usableEntryType): void
     {
         $this->cacheAdapter
             ->expects(static::never())
@@ -125,8 +141,8 @@ class CacheResetServiceTest extends TestCase
         static::assertTrue($this->fixture->resetEntryCache((object) [
             'sys' => (object) [
                 'id' => $id,
-                'type' => 'Entry'
-            ]
+                'type' => $usableEntryType,
+            ],
         ]));
     }
 
@@ -153,9 +169,12 @@ class CacheResetServiceTest extends TestCase
     /**
      * Checks that the whole content cache is cleared if configured.
      *
+     * @dataProvider getUsableEntryTypes
+     * @param string $usableEntryType
+     *
      * @return void
      */
-    public function testThatWholeCacheIsCleared(): void
+    public function testThatWholeCacheIsCleared(string $usableEntryType): void
     {
         $fixture = new CacheResetService(
             $cache = $this->createMock(CacheItemPoolInterface::class),
@@ -186,8 +205,8 @@ class CacheResetServiceTest extends TestCase
         static::assertTrue($fixture->resetEntryCache((object) [
             'sys' => (object) [
                 'id' => $id,
-                'type' => 'Entry'
-            ]
+                'type' => $usableEntryType,
+            ],
         ]));
     }
 }

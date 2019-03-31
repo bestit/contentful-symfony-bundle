@@ -11,7 +11,9 @@ use Psr\Log\LoggerAwareTrait;
 use Psr\Log\NullLogger;
 use Symfony\Component\Cache\Adapter\TagAwareAdapterInterface;
 use stdClass;
+use function array_map;
 use function func_num_args;
+use function in_array;
 use function strtolower;
 
 /**
@@ -23,6 +25,13 @@ use function strtolower;
 class CacheResetService implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
+
+    /**
+     * This array saves which entry types are usable for cache resets.
+     *
+     * @var array
+     */
+    private const USABLE_ENTRY_TYPE = ['DeletedEntry', 'Entry',];
 
     /**
      * The used cache.
@@ -62,6 +71,23 @@ class CacheResetService implements LoggerAwareInterface
     }
 
     /**
+     * Is the given entry usable for the cache reset.
+     *
+     * @param stdClass $entry
+     *
+     * @return bool
+     */
+    private function isUsableEntryType(stdClass $entry): bool
+    {
+        return @$entry->sys && @$entry->sys->type &&
+            in_array(
+                strtolower(@$entry->sys->type),
+                array_map('strtolower', self::USABLE_ENTRY_TYPE),
+                true
+            );
+    }
+
+    /**
      * Rests the cache for the given entry.
      *
      * @param stdClass $entry
@@ -74,7 +100,7 @@ class CacheResetService implements LoggerAwareInterface
 
         $this->logger->debug('Reset contentful cache for entry.', $logContext = ['entry' => $entry,]);
 
-        if (@$entry->sys && @$entry->sys->type && strtolower(@$entry->sys->type) === 'entry') {
+        if ($this->isUsableEntryType($entry)) {
             if ($completeCacheReset = $this->withCompleteReset()) {
                 $this->logger->debug('Reset the complete contentful cache for entry.', $logContext);
 
