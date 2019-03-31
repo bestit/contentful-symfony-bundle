@@ -186,6 +186,17 @@ class ClientDecorator implements LoggerAwareInterface
                 $cacheItem->expiresAfter($cacheTTL);
             }
 
+            $logger->debug(
+                'Cached found contentful elements.',
+                [
+                    'cacheId' => $cacheId,
+                    'cacheTags' => $cacheTags ?? [],
+                    'cacheTtl' => $cacheTTL,
+                    'entries' => $entries,
+                    'parser' => get_class($parser),
+                ]
+            );
+
             $cache->save($cacheItem->set($entries));
         }
 
@@ -241,6 +252,17 @@ class ClientDecorator implements LoggerAwareInterface
                 if ($cacheTTL = $this->getCacheTTL()) {
                     $cacheItem->expiresAfter($cacheTTL);
                 }
+
+                $logger->debug(
+                    'Cached found contentful element.',
+                    [
+                        'cacheId' => $id,
+                        'cacheTags' => $entryTags ?? [],
+                        'cacheTtl' => $cacheTTL,
+                        'entries' => $entry,
+                        'parser' => get_class($parser),
+                    ]
+                );
 
                 $cache->save($cacheItem->set($entry));
             } catch (RequestException $exception) {
