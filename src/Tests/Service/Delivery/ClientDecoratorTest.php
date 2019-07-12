@@ -18,6 +18,7 @@ use Contentful\Delivery\Resource\ContentType;
 use Contentful\Delivery\Resource\ContentType\Field;
 use Contentful\Delivery\Resource\Entry;
 use Doctrine\Common\Cache\ArrayCache;
+use GuzzleHttp\Exception\RequestException;
 use PHPUnit\Framework\TestCase;
 use PHPUnit_Framework_MockObject_MockObject;
 use Psr\Cache\InvalidArgumentException;
@@ -237,6 +238,31 @@ class ClientDecoratorTest extends TestCase
             $result,
             $this->fixture->getEntries($callback),
             'The second response should be cached and the same.'
+        );
+    }
+
+    /**
+     * Checks if get entries method returning always an array
+     *
+     * @return void
+     *
+     * @throws InvalidArgumentException
+     */
+    public function testGetEntriesWithWrongType()
+    {
+        $this->client
+            ->expects($this->once())
+            ->method('getEntries')
+            ->willThrowException($this->createMock(RequestException::class));
+
+        $callback = function ($query) {
+            static::assertInstanceOf(Query::class, $query);
+        };
+
+        static::assertSame(
+            [],
+            $this->fixture->getEntries($callback),
+            'The first response was not correct.'
         );
     }
 

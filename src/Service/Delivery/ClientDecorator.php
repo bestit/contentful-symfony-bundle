@@ -200,7 +200,7 @@ class ClientDecorator implements LoggerAwareInterface
             $cache->save($cacheItem->set($entries));
         }
 
-        return $entries ?? [];
+        return is_array($entries) ? $entries : [];
     }
 
     /**
