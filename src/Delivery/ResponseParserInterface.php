@@ -2,6 +2,9 @@
 
 namespace BestIt\ContentfulBundle\Delivery;
 
+use Contentful\Delivery\DynamicEntry;
+use Contentful\ResourceArray;
+
 /**
  * Simplifies the delivery response to get it cached.
  *

@@ -21,10 +21,7 @@ services:
             - '@best_it_contentful.event_dispatcher'
             - '@best_it_contentful.logger'
             - '@best_it_contentful.delivery.response_parser.default'
-        calls:
-            - [setCacheTTL, ['%best_it_contentful.cache.content.cache_ttl%']]
-            - [setRoutableTypes, ['%best_it_contentful.routable_types%']]
-            - [setSlugField, ['%best_it_contentful.routing_field%']]
+            - '@best_it_contentful.service_cache.cache_entry_manager'
 
     best_it_contentful.delivery.response_parser.default:
         class: BestIt\ContentfulBundle\Delivery\SimpleResponseParser
@@ -53,3 +50,10 @@ services:
         public: false
         arguments:
             - '%best_it_contentful.routing_field%'
+
+    best_it_contentful.service_cache.cache_entry_manager:
+        class: BestIt\ContentfulBundle\Service\Cache\CacheEntryManager
+        arguments: ['@best_it_contentful.delivery.response_parser.default', '@best_it_contentful.cache.pool.delivery']
+        calls:
+            - [saveEntryInCache, ['@?', '@best_it_contentful.delivery.response_parser.default']]
+            - [setLogger, ['@best_it_contentful.logger']]
