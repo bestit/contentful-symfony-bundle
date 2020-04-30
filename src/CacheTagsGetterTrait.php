@@ -8,6 +8,8 @@ use BestIt\ContentfulBundle\Routing\RoutableTypesAwareTrait;
 use Contentful\Delivery\ContentTypeField;
 use Contentful\Delivery\DynamicEntry;
 use Contentful\ResourceArray;
+use Exception;
+use Psr\Log\LoggerInterface;
 use Traversable;
 use function array_filter;
 use function array_merge;
@@ -31,6 +33,11 @@ trait CacheTagsGetterTrait
      * @var array Default tags for the entries.
      */
     protected $defaultTags = [];
+
+    /**
+     * @var LoggerInterface The optional used logger
+     */
+    protected $logger;
 
     /**
      * Returns the cache keys for every entry.
@@ -57,9 +64,27 @@ trait CacheTagsGetterTrait
             }
 
             foreach ($fields as $field) {
+                $childTags = null;
+                try {
+                    $entryValue = $contentfulResult->{'get' . ucfirst($field->getId())}();
+                } catch (Exception $e) {
+                    if ($this->logger !== null) {
+                        $this->logger->error(
+                            'Error at resolving field in cache tag resolver',
+                            [
+                                'exception' => $e,
+                                'field' => $field->getId(),
+                                'entry' => $contentfulResult->getId()
+                            ]
+                        );
+                    }
+                }
+
+                $childTags = $this->getCacheTags($entryValue);
+
                 $tags = array_merge(
                     $tags,
-                    $this->getCacheTags($contentfulResult->{'get' . ucfirst($field->getId())}())
+                    $childTags ?? []
                 );
             }
         } else {

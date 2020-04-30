@@ -77,7 +77,7 @@ best_it_contentful:
             # If the requested url contains this query parameter, the routing cache will be ignored.
             parameter_against_routing_cache:  ignore-contentful-routing-cache
 
-        # Should the whole contentful cache be cleared every time on an entry reset request?
+        # Should the whole contentful cache be cleared every time on an entry reset request? Not recommended
         complete_clear_on_webhook:  false
 
         # Which cache ids should be resetted everytime?
@@ -128,30 +128,86 @@ best_it_contentful:
                         unique:               ~
 ```
 
-### Step 4: Enable the cache reset webhook
+### Step 4: Enable the caching
 
-**Every contentful entry is cached forever with this bundle, but ...**
+This bundle introduces a 2 Layer caching system for all used contentful entries to allow a almost zero request workflow for the
+user.  
 
-You can use the [contentful webhooks](https://www.contentful.com/developers/docs/concepts/webhooks/) to reset your 
-cache entries. 
+- Every contentful entry is cached with his contentful id in the configured caching pool. 
+- Every query that is executed will be stored in a serialized format and persisted. The serialized query must not be stored in the cache. 
+
+To allow this zero request worklflow this bundle implements a cache warmup mechanismus to prefill the contentful cache
+with the entries from contentful. This cache warmup uses the contentful syncronisation api and a combination of simple
+queries that only fetched the ids of the result. this id list can be stored in the cache and the implementation will then
+use the cached entries from the synronisation process. 
+
+Additionally, new and changed entries will be stored in the cache via a [webhook mechanismus](https://www.contentful.com/developers/docs/concepts/webhooks/) that creates or updates the send entry
+in the cache. 
+
+To enable the webhook just import the routing.yml file in yout internal project 
+routign configurtion like this:
 
 ```yaml
 best_it_contentful:
-    prefix:   /bestit/contentful
-    resource: "@BestItContentfulBundle/Controller"
-    type:     annotation
+    prefix:   /contentful
+    resource: '@BestItContentfulBundle/Resources/config/routing.yml'
 ```    
 
-Just add the reset controller to your routing (_we suggest to protected it with a http auth password_) and input this
- url in your contentful webhook config and you are ready to go.
+To activate the webhooks in contentful follow the guide [guide](https://www.contentful.com/developers/docs/concepts/webhooks/)
+and configure the webhook with the following table:
 
+| Type  | Event   | URL    | Description                |
+|-------|---------|--------|----------------------------|
+| Entry | create  | /fill  | A entry has been created. The cached entry will be created.   |
+| Entry | publish | /fill  | A entry has been published. The cached entry will be overwriten. |
+| Entry | save    | /fill  | A entry has been saved. The cached entry will be overwriten.     |
+| Entry | delete  | /reset | A entry has been deleted. The cached entry will be deleted.  |
 
-The most simple cache reset is the direct reset on an id or the array of the ids from an collection (used as cache 
-tags). 
+The cache warmer is automatically enabled and should run at every call of the following command:
+
+```console
+$ ./bin/console cache:warmup
+```
+
+or 
+
+```console
+$ ./bin/console cache:clear
+```
 
 **If you have cache entries which are not matched to the entry ids directly but to your own custom cache ids, you need to 
 fill the config value caching.collection_consumer with this custom cache ids to reset them anytime another cache is 
 reset.**
+Because of technical limitation the raw entry from contentful is not saved in the cache but a parsed array 
+representation instead. The parsing of a the fetched entry is possible via individual response parsers that convert the
+entry object into an array before it is saved in the cache.
+
+It is possible to implement custom parsers if you need to modify the parsed result. This custom parser can be attached 
+to the fetch operation for the entries. If you have attached a custom parser the parsed array representation for
+this parser will be returned from the cache instead of the default implementation. 
+
+To make this work you need to register your custom parsers to a content type in the configuration. 
+With this configured everytime a entry from contentful with the configured contenttype is saved in the cache,
+the parse result of the custom response parser is also saved in the cache. If you fetch a entry from the cache with a 
+custom parser the correct result for this parser is returned. If you fetch a result without a parser the default parser 
+result is returned.
+
+Add the following configuration to your config file to activate the custom parsers:
+ 
+ ```yaml
+    best_it_contentful:
+        caching:
+            response_parser:
+                # The configured response parser for the content type manufacturer
+                manufacturer:
+                    - 'best_it_contentful.routing.route_collection_response_parser'
+                # The configured response parser for the content type simple_page
+                simple_page:
+                    - 'best_it_contentful.routing.route_collection_response_parser'
+                # The configured response parser for the content type startpage
+                startpage:
+                    - 'best_it_contentful.routing.route_collection_response_parser'
+ ```
 
 ## Usage
 

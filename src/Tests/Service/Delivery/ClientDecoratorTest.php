@@ -8,6 +8,7 @@ use BestIt\ContentfulBundle\CacheTTLAwareTrait;
 use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use BestIt\ContentfulBundle\Service\Cache\CacheEntryManager;
+use BestIt\ContentfulBundle\Service\Cache\QueryStorageInterface;
 use BestIt\ContentfulBundle\Service\Delivery\ClientDecorator;
 use Closure;
 use Contentful\Delivery\Client;
@@ -57,6 +58,11 @@ class ClientDecoratorTest extends TestCase
     private $cacheEntryManager;
 
     /**
+     * @var QueryStorageInterface|PHPUnit_Framework_MockObject_MockObject The used query storage
+     */
+    private $queryStorage;
+
+    /**
      * Returns an injection parser to test and its response.
      *
      * @return array
@@ -100,7 +106,8 @@ class ClientDecoratorTest extends TestCase
             $this->eventDispatcher = $this->createMock(EventDispatcherInterface::class),
             $this->createMock(LoggerInterface::class),
             $this->parser = $this->createMock(ResponseParserInterface::class),
-            $this->cacheEntryManager = $this->createMock(CacheEntryManager::class)
+            $this->cacheEntryManager = $this->createMock(CacheEntryManager::class),
+            $this->queryStorage = $this->createMock(QueryStorageInterface::class)
         );
     }
 

@@ -64,7 +64,35 @@ class BestItContentfulExtension extends Extension
             'best_it_contentful.cache.pool.routing' => $config['caching']['routing']['service_id'],
             'best_it_contentful.event_dispatcher' => $config['event_dispatcher'],
             'best_it_contentful.logger' => $config['logger'],
-            'best_it_contentful.client' => $config['client']
+            'best_it_contentful.client' => $config['client'],
+            'best_it_contentful.query_storage' => $config['query_storage']
         ]);
+
+        $this->attachResponseParsers($config['caching']['response_parser'] ?? [], $container);
+    }
+
+    /**
+     * Attach the response parser
+     *
+     * @param array $parserConfig
+     * @param ContainerBuilder $builder
+     *
+     * @return void
+     */
+    private function attachResponseParsers(array $parserConfig, ContainerBuilder $builder)
+    {
+        $cacheManager = $builder->getDefinition('best_it_contentful.service_cache.cache_entry_manager');
+
+        foreach ($parserConfig as $contentType => $config) {
+            array_walk($config, function ($parser) use($contentType, $cacheManager, $builder) {
+                $cacheManager->addMethodCall(
+                    'addResponseParser',
+                    [
+                        $builder->getDefinition($parser),
+                        $contentType
+                    ]
+                );
+            });
+        }
     }
 }

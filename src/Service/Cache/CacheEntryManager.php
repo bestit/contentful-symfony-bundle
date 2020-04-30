@@ -37,7 +37,7 @@ class CacheEntryManager
      *
      * @var ResponseParserInterface[]
      */
-    private $responseParsers;
+    private $responseParsers = [];
 
     /**
      * The default response parser is used every time no custom parser is configured or given
@@ -91,15 +91,19 @@ class CacheEntryManager
      */
     public function getQueryIdListFromCache(Query $query, string $cacheId = null)
     {
+        $cacheId = $cacheId ?? $this->getQueryIdsCacheKey($query);
+        $cacheItem = $this->cache->getItem($cacheId);
+
         $this->logger->debug(
             'Try to fetch id list for the given query from the cache',
             [
                 'query' => $query->getQueryString(),
-                'cacheId' => $cacheId = $cacheId ?? $this->getQueryIdsCacheKey($query)
+                'cacheId' => $cacheId,
+                'isHit' => $isHit = $cacheItem->isHit()
             ]
         );
 
-        return $this->cache->getItem($cacheId)->get();
+        return $isHit ? $cacheItem->get() : null;
     }
 
     /**
@@ -116,7 +120,7 @@ class CacheEntryManager
         $this->logger->debug(
             'Save id list for query in cache',
             [
-                'idList' => $idList,
+                'countIds' => count($idList),
                 'query' => $query->getQueryString(),
                 'cacheId' => $cacheId = $cacheId ?? $this->getQueryIdsCacheKey($query)
             ]

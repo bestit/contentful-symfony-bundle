@@ -108,6 +108,7 @@ class Configuration implements ConfigurationInterface
                 ->end()
             ->end();
 
+        $node->append($this->getResponseParserNode());
         $node->end();
 
         return $node;
@@ -139,6 +140,11 @@ class Configuration implements ConfigurationInterface
                     ->cannotBeEmpty()
                     ->isRequired()
                 ->end()
+                ->scalarNode('query_storage')
+                    ->info('Set service id of your query storage.')
+                    ->cannotBeEmpty()
+                    ->defaultValue('best_it_contentful.service_cache.file_system_query_storage')
+                ->end()
                 ->scalarNode('controller_field')
                     ->info('This field indicates which controller should be used for the routing.')
                     ->defaultValue('controller')
@@ -159,6 +165,29 @@ class Configuration implements ConfigurationInterface
             ->end();
 
         return $builder;
+    }
+
+    /**
+     * Get the node for the response parser
+     *
+     * @return ArrayNodeDefinition
+     */
+    private function getResponseParserNode():ArrayNodeDefinition
+    {
+        $treeBuilder = new TreeBuilder();
+        $node = $treeBuilder->root('response_parser');
+
+        /** @var $parserNode ArrayNodeDefinition */
+        $parserNode = $node
+                ->requiresAtLeastOneElement()
+                ->useAttributeAsKey('contentType')
+                ->prototype('array');
+
+        $parserNode
+            ->prototype('scalar')
+            ->end();
+
+        return $node;
     }
 
     /**

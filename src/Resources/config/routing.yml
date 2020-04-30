@@ -1,0 +1,9 @@
+cache_fill:
+    path:     /entry
+    defaults: { _controller: best_it_contentful.controller.cache_fill_controller }
+    methods:  [POST]
+
+blog_show:
+    path:     /reset
+    defaults: { _controller: best_it_contentful.controller.cache_reset_controller }
+    methods:  [POST]

@@ -7,6 +7,7 @@ namespace BestIt\ContentfulBundle\Service\Delivery;
 use BestIt\ContentfulBundle\ClientEvents;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
 use BestIt\ContentfulBundle\Service\Cache\CacheEntryManager;
+use BestIt\ContentfulBundle\Service\Cache\QueryStorageInterface;
 use Contentful\Delivery\Asset;
 use Contentful\Delivery\Client;
 use Contentful\Delivery\DynamicEntry;
@@ -62,6 +63,11 @@ class ClientDecorator implements LoggerAwareInterface
     private $cacheEntryManager;
 
     /**
+     * @var QueryStorageInterface The storage for the executed queries
+     */
+    private $queryStorage;
+
+    /**
      * ClientDecorator constructor.
      *
      * @param Client $client
@@ -70,6 +76,7 @@ class ClientDecorator implements LoggerAwareInterface
      * @param LoggerInterface $logger
      * @param ResponseParserInterface $responseParser
      * @param CacheEntryManager $cacheEntryManager
+     * @param QueryStorageInterface $queryStorage
      */
     public function __construct(
         Client $client,
@@ -77,7 +84,8 @@ class ClientDecorator implements LoggerAwareInterface
         EventDispatcherInterface $eventDispatcher,
         LoggerInterface $logger,
         ResponseParserInterface $responseParser,
-        CacheEntryManager $cacheEntryManager
+        CacheEntryManager $cacheEntryManager,
+        QueryStorageInterface $queryStorage
     ) {
         $this->cache = $cache;
         $this->client = $client;
@@ -86,6 +94,7 @@ class ClientDecorator implements LoggerAwareInterface
         $this->cacheEntryManager = $cacheEntryManager;
 
         $this->setLogger($logger);
+        $this->queryStorage = $queryStorage;
     }
 
     /**
@@ -172,16 +181,18 @@ class ClientDecorator implements LoggerAwareInterface
      *
      * @return array
      */
-    private function getAllEntryIds(Query $query, string $cacheId = null): array
+    public function getAllEntryIds(Query $query, string $cacheId = null): array
     {
         $this->logger->debug(
             'Loading contentful entry Ids for given query. Try to fetch ids from cache first.',
             ['query' => $query->getQueryString()]
         );
 
-        $idList = $this->cacheEntryManager->getQueryIdListFromCache($query, $cacheId) ?? [];
+        $idList = $this->cacheEntryManager->getQueryIdListFromCache($query, $cacheId);
 
-        if ($idList === []) {
+        $this->logger->debug('Fetched cache result', ['result' => $idList]);
+
+        if ($idList === null) {
             $originalQuery = clone $query;
             // We only want to select the ids because these values can't be cached via the webhook
             $query->select(['sys.id']);
@@ -189,16 +200,19 @@ class ClientDecorator implements LoggerAwareInterface
             $this->logger->debug('No ids in cache found, fetch from contentful.');
 
             $entries = $this->client->getEntries($query);
+            $this->queryStorage->saveQueryInStorage($query, $originalQuery, $cacheId);
+            $idList = [];
             if ($entries && count($entries)) {
                 $idList = array_map(
                     function (DynamicEntry $dynamicEntry) {
                         return $dynamicEntry->getId();
                     }, $entries->getItems()
                 );
-
-                $this->cacheEntryManager->saveQueryIdListInCache($idList, $originalQuery);
             }
+            $this->cacheEntryManager->saveQueryIdListInCache($idList, $originalQuery, $cacheId);
         }
+
+        $this->logger->debug('Fetched ids', ['ids' => $idList]);
 
         return $idList;
     }

@@ -22,10 +22,13 @@ services:
             - '@best_it_contentful.logger'
             - '@best_it_contentful.delivery.response_parser.default'
             - '@best_it_contentful.service_cache.cache_entry_manager'
+            - '@best_it_contentful.query_storage'
 
     best_it_contentful.delivery.response_parser.default:
         class: BestIt\ContentfulBundle\Delivery\SimpleResponseParser
         public: false
+        calls:
+            - [setLogger, ['@best_it_contentful.logger']]
 
     best_it_contentful.markdown.parser:
         class: BestIt\ContentfulBundle\Service\MarkdownParser
@@ -48,6 +51,8 @@ services:
     best_it_contentful.routing.route_collection_response_parser:
         class: BestIt\ContentfulBundle\Routing\RouteCollectionResponseParser
         public: false
+        tags:
+            - { name: 'best_it.contentful.response_parser', content_type: 'site'}
         arguments:
             - '%best_it_contentful.routing_field%'
 
@@ -55,5 +60,43 @@ services:
         class: BestIt\ContentfulBundle\Service\Cache\CacheEntryManager
         arguments: ['@best_it_contentful.delivery.response_parser.default', '@best_it_contentful.cache.pool.delivery']
         calls:
-            - [saveEntryInCache, ['@?', '@best_it_contentful.delivery.response_parser.default']]
             - [setLogger, ['@best_it_contentful.logger']]
+
+    best_it_contentful.service_delivery.content_synchronisation_client:
+        class: BestIt\ContentfulBundle\Service\Delivery\ContentSynchronisationClient
+        arguments: ['@best_it_contentful.client']
+        calls:
+            - [setLogger, ['@best_it_contentful.logger']]
+
+    best_it_contentful.service_cache.contentful_cache_warmer:
+        class: BestIt\ContentfulBundle\Service\Cache\ContentfulCacheWarmer
+        arguments:
+            - '@best_it_contentful.service_cache.cache_entry_manager'
+            - '@best_it_contentful.service_delivery.content_synchronisation_client'
+            - '@best_it_contentful.query_storage'
+            - '@best_it_contentful.delivery.client'
+        tags:
+            - { name: kernel.cache_warmer }
+
+    best_it_contentful.service_cache.file_system_query_storage:
+        class: BestIt\ContentfulBundle\Service\Cache\FileSystemQueryStorage
+        arguments:
+          ['%kernel.cache_dir%/../../contentful/query.json', '@filesystem']
+        calls:
+            - [setLogger, ['@best_it_contentful.logger']]
+
+    best_it_contentful.controller.cache_fill_controller:
+        class: BestIt\ContentfulBundle\Controller\CacheFillController
+        arguments: ['@best_it_contentful.client', '@best_it_contentful.service_cache.cache_entry_manager']
+        calls:
+            - [setLogger, ['@best_it_contentful.logger']]
+
+    best_it_contentful.controller.cache_reset_controller:
+        class: BestIt\ContentfulBundle\Controller\CacheResetController
+        arguments: ['@best_it_contentful.delivery.cache.reset_service']
+        calls:
+            - [setLogger, ['@best_it_contentful.logger']]
+
+
+
+
