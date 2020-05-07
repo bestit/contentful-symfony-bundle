@@ -3,9 +3,9 @@
 namespace BestIt\ContentfulBundle\Controller;
 
 use BestIt\ContentfulBundle\Service\CacheResetService;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
-use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\NullLogger;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -16,58 +16,43 @@ use Symfony\Component\HttpFoundation\Response;
  * @package BestIt\ContentfulBundle\Controller
  * @subpackage Service
  */
-class CacheResetController extends Controller
+class CacheResetController implements LoggerAwareInterface
 {
+    use LoggerAwareTrait;
+
     /**
      * The cache reset service.
      *
      * @var CacheResetService
      */
-    protected $resetService = null;
+    protected $resetService;
 
     /**
-     * Returns the reset service.
+     * CacheResetController constructor.
      *
-     * @return CacheResetService
+     * @param CacheResetService $resetService
      */
-    public function getResetService(): CacheResetService
+    public function __construct(CacheResetService $resetService)
     {
-        if (!$this->resetService) {
-            $this->setResetService($this->get('best_it_contentful.delivery.cache.reset_service'));
-        }
-
-        return $this->resetService;
+        $this->resetService = $resetService;
+        $this->logger = new NullLogger();
     }
 
     /**
      * Reacts on the contentful request.
      *
      * @param Request $request
-     * @Route("reset")
-     * @Security("has_role('ROLE_USER')")
      *
      * @return Response
      */
-    public function postAction(Request $request): Response
+    public function __invoke(Request $request): Response
     {
         @$entry = json_decode($request->getContent());
 
         return new Response(
             $entry
-                ? json_encode($this->getResetService()->resetEntryCache($entry) ? true : false)
+                ? json_encode($this->resetService->resetEntryCache($entry) ? true : false)
                 : json_encode(false)
         );
-    }
-
-    /**
-     * @param CacheResetService $resetService
-     *
-     * @return CacheResetController
-     */
-    public function setResetService(CacheResetService $resetService): CacheResetController
-    {
-        $this->resetService = $resetService;
-
-        return $this;
     }
 }

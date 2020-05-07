@@ -6,6 +6,10 @@ use Contentful\Delivery\Asset;
 use Contentful\Delivery\ContentTypeField;
 use Contentful\Delivery\DynamicEntry;
 use Contentful\ResourceArray;
+use Exception;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\NullLogger;
 
 /**
  * Simplifies the delivery response to get it cached.
@@ -17,8 +21,18 @@ use Contentful\ResourceArray;
  * @package BestIt\ContentfulBundle\Delivery
  * @subpackage Delivery
  */
-class SimpleResponseParser implements ResponseParserInterface
+class SimpleResponseParser implements ResponseParserInterface, LoggerAwareInterface
 {
+    use LoggerAwareTrait;
+
+    /**
+     * SimpleResponseParser constructor.
+     */
+    public function __construct()
+    {
+        $this->logger = new NullLogger();
+    }
+
     /**
      * Reads the values from an entry (and resolves its links) recursively.
      *
@@ -34,7 +48,19 @@ class SimpleResponseParser implements ResponseParserInterface
 
         $fields = $entry->getContentType()->getFields();
         $return += array_map(function (ContentTypeField $field) use ($entry) {
-            $entryValue = $entry->{'get' . ucfirst($field->getId())}();
+            try {
+                $entryValue = $entry->{'get' . ucfirst($field->getId())}();
+            } catch (Exception $e) {
+                $this->logger->error(
+                    'Error at resolving field in contentful response parser',
+                    [
+                        'exception' => $e,
+                        'field' => $field->getId(),
+                        'entry' => $entry->getId()
+                    ]
+                );
+                return null;
+            }
 
             if (is_array($entryValue)) {
                 $entryValue = $this->toArray($entryValue);

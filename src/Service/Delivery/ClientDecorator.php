@@ -4,36 +4,37 @@ declare(strict_types=1);
 
 namespace BestIt\ContentfulBundle\Service\Delivery;
 
-use BestIt\ContentfulBundle\CacheTTLAwareTrait;
-use BestIt\ContentfulBundle\CacheTagsGetterTrait;
 use BestIt\ContentfulBundle\ClientEvents;
 use BestIt\ContentfulBundle\Delivery\ResponseParserInterface;
+use BestIt\ContentfulBundle\Service\Cache\CacheEntryManager;
+use BestIt\ContentfulBundle\Service\Cache\QueryStorageInterface;
 use Contentful\Delivery\Asset;
 use Contentful\Delivery\Client;
+use Contentful\Delivery\DynamicEntry;
 use Contentful\Delivery\Query;
 use Contentful\ResourceArray;
-use GuzzleHttp\Exception\RequestException;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
+use Throwable;
 use function get_class;
-use function method_exists;
 use function sprintf;
+use function array_diff;
+use function array_keys;
+use function count;
 
 /**
  * Extends the logics for the contentful delivery.
  *
- * @author lange <lange@bestit-online.de>
- * @method Asset getAsset(string $id, string | null $locale = null)
+ * @author  lange <lange@bestit-online.de>
+ * @method  Asset getAsset(string $id, string | null $locale = null)
  * @package BestIt\ContentfulBundle\Service\Delivery
  */
 class ClientDecorator implements LoggerAwareInterface
 {
-    use CacheTagsGetterTrait;
-    use CacheTTLAwareTrait;
     use LoggerAwareTrait;
 
     /**
@@ -57,6 +58,16 @@ class ClientDecorator implements LoggerAwareInterface
     private $eventDispatcher;
 
     /**
+     * @var CacheEntryManager The cache manager for the entries
+     */
+    private $cacheEntryManager;
+
+    /**
+     * @var QueryStorageInterface The storage for the executed queries
+     */
+    private $queryStorage;
+
+    /**
      * ClientDecorator constructor.
      *
      * @param Client $client
@@ -64,20 +75,26 @@ class ClientDecorator implements LoggerAwareInterface
      * @param EventDispatcherInterface $eventDispatcher
      * @param LoggerInterface $logger
      * @param ResponseParserInterface $responseParser
+     * @param CacheEntryManager $cacheEntryManager
+     * @param QueryStorageInterface $queryStorage
      */
     public function __construct(
         Client $client,
         CacheItemPoolInterface $cache,
         EventDispatcherInterface $eventDispatcher,
         LoggerInterface $logger,
-        ResponseParserInterface $responseParser
+        ResponseParserInterface $responseParser,
+        CacheEntryManager $cacheEntryManager,
+        QueryStorageInterface $queryStorage
     ) {
         $this->cache = $cache;
         $this->client = $client;
         $this->defaultResponseParser = $responseParser;
         $this->eventDispatcher = $eventDispatcher;
+        $this->cacheEntryManager = $cacheEntryManager;
 
         $this->setLogger($logger);
+        $this->queryStorage = $queryStorage;
     }
 
     /**
@@ -117,73 +134,21 @@ class ClientDecorator implements LoggerAwareInterface
         string $cacheId = '',
         ResponseParserInterface $parser = null
     ): array {
-        $cache = $this->cache;
-        $cacheItem = null;
-        $cacheHit = false;
-        $entries = null;
-        $logger = $this->logger;
         $query = $this->getBaseQuery();
-
         $buildQuery($query);
 
-        if ($cacheId) {
-            $cacheItem = $cache->getItem($cacheId);
+        $entryIds = $this->getAllEntryIds($query, !empty($cacheId) ? $cacheId : null);
+        $entries = null;
 
-            if ($cacheHit = $cacheItem->isHit()) {
-                $entries = $cacheItem->get();
-            }
+        if (!$parser) {
+            $parser = $this->defaultResponseParser;
         }
 
-        if (!$cacheHit || !$cacheId) {
-            $dispatcher = $this->eventDispatcher;
-
-            if (!$parser) {
-                $parser = $this->defaultResponseParser;
-            }
-
-            try {
-                $logger->debug(
-                    'Loading contentful elements.',
-                    ['cacheId' => $cacheId, 'parser' => get_class($parser)]
-                );
-
-                /** @var ResourceArray $entries */
-                $entries = $this->client->getEntries($query);
-
-                if ($cacheId) {
-                    $cacheTags = $this->getCacheTags($entries);
-                }
-
-                $dispatcher->dispatch(ClientEvents::LOAD_CONTENTFUL_ENTRIES, new GenericEvent($entries));
-
-                foreach ($entries as $entry) {
-                    $dispatcher->dispatch(ClientEvents::LOAD_CONTENTFUL_ENTRY, new GenericEvent($entry));
-                }
-
-                $entries = $parser->toArray($entries);
-
-                $logger->notice(
-                    'Found contentful elements.',
-                    ['cacheId' => $cacheId, 'entries' => $entries, 'parser' => get_class($parser)]
-                );
-            } catch (RequestException $exception) {
-                $this->logger->critical(
-                    'Elements could not be loaded.',
-                    ['cacheId' => $cacheId, 'exception' => $exception, 'parser' => get_class($parser)]
-                );
-            }
-        }
-
-        if ($cacheId && !$cacheHit && $entries !== null) {
-            if ($cacheTags && method_exists($cacheItem, 'tag')) {
-                $cacheItem->tag($cacheTags);
-            }
-
-            if ($cacheTTL = $this->getCacheTTL()) {
-                $cacheItem->expiresAfter($cacheTTL);
-            }
-
-            $cache->save($cacheItem->set($entries));
+        if (count($entryIds) && $foundEntries = count($entries = $this->getEntriesByIds($entryIds, $parser))) {
+            $this->logger->debug(
+                'Found contentful elements.',
+                ['cacheId' => $cacheId, 'parser' => get_class($parser), 'found' => $foundEntries]
+            );
         }
 
         return is_array($entries) ? $entries : [];
@@ -199,55 +164,137 @@ class ClientDecorator implements LoggerAwareInterface
      */
     public function getEntry(string $id, ResponseParserInterface $parser = null): array
     {
-        $cache = $this->cache;
-        $cacheItem = $cache->getItem($id);
-        $entry = [];
-        $logger = $this->logger;
-
         if (!$parser) {
             $parser = $this->defaultResponseParser;
         }
 
-        if ($cacheHit = $cacheItem->isHit()) {
-            $entry = $cacheItem->get();
+        $entries = $this->getEntriesByIds([$id], $parser);
+
+        return count($entries) ? current($entries) : [];
+    }
+
+    /**
+     * Get the entry ids for a query
+     *
+     * @param Query $query The query that will be executed
+     * @param string|null $cacheId A custom cache id
+     *
+     * @return array
+     */
+    public function getAllEntryIds(Query $query, string $cacheId = null): array
+    {
+        $this->logger->debug(
+            'Loading contentful entry Ids for given query. Try to fetch ids from cache first.',
+            ['query' => $query->getQueryString()]
+        );
+
+        $idList = $this->cacheEntryManager->getQueryIdListFromCache($query, $cacheId);
+
+        $this->logger->debug('Fetched cache result', ['result' => $idList]);
+
+        if ($idList === null) {
+            $originalQuery = clone $query;
+            // We only want to select the ids because these values can't be cached via the webhook
+            $query->select(['sys.id']);
+
+            $this->logger->debug('No ids in cache found, fetch from contentful.');
+
+            $entries = $this->client->getEntries($query);
+            $this->queryStorage->saveQueryInStorage($query, $originalQuery, $cacheId);
+            $idList = [];
+            if ($entries && count($entries)) {
+                $idList = array_map(
+                    function (DynamicEntry $dynamicEntry) {
+                        return $dynamicEntry->getId();
+                    }, $entries->getItems()
+                );
+            }
+            $this->cacheEntryManager->saveQueryIdListInCache($idList, $originalQuery, $cacheId);
         }
 
-        if (!$cacheHit) {
-            try {
-                $logger->debug(
-                    sprintf('Loading contentful element with ID %s.', $id),
-                    ['id' => $id, 'parser' => get_class($parser)]
-                );
+        $this->logger->debug('Fetched ids', ['ids' => $idList]);
 
-                $entry = $this->client->getEntry($id);
-                $entryTags = $this->getCacheTags($entry);
+        return $idList;
+    }
 
-                $this->eventDispatcher->dispatch(ClientEvents::LOAD_CONTENTFUL_ENTRY, new GenericEvent($entry));
+    /**
+     * Get the entries for the given ids
+     *
+     * Try to fetch the ids from the cache first.
+     *
+     * @param array $ids The ids that will be fetched
+     * @param ResponseParserInterface|null $responseParser The response parser that is used for the result
+     *
+     * @return array
+     */
+    private function getEntriesByIds(array $ids, ResponseParserInterface $responseParser = null): array
+    {
+        $this->logger->debug(
+            'Loading dynamic entries for the given ids. Try to fetch entries from cache first.',
+            ['ids' => $ids]
+        );
 
-                $entry = $parser->toArray($entry);
+        $cachedEntries = $this->cacheEntryManager->getEntriesFromCache($ids, $responseParser);
+        $notFoundIds = array_diff($ids, array_keys($cachedEntries));
 
-                $logger->notice(
-                    sprintf('Found contentful element with ID %s.', $id),
-                    ['id' => $id, 'entry' => $entry, 'parser' => get_class($parser)]
-                );
+        $this->logger->debug(
+            'Fetched entries from cache .',
+            ['missing_entries' => count($notFoundIds)]
+        );
 
-                if ($entryTags && method_exists($cacheItem, 'tag')) {
-                    $cacheItem->tag($entryTags);
+        if (count($notFoundIds)) {
+            $query = (new Query())->where('sys.id[in]', $notFoundIds);
+
+            $this->logger->debug(
+                'Loading missing contentful element with IDs .',
+                ['ids' => $notFoundIds]
+            );
+
+            /** @var ResourceArray $entries */
+            if ($entries = $this->fetchEntries($query)) {
+
+                /** @var DynamicEntry $entry */
+                foreach ($entries as $entry) {
+                    $this->eventDispatcher->dispatch(ClientEvents::LOAD_CONTENTFUL_ENTRY, new GenericEvent($entry));
+                    $cacheItem = $this->cacheEntryManager->saveEntryInCache($entry, $responseParser);
+
+                    $this->logger->notice(
+                        sprintf('Found contentful element with ID %s.', $entry->getId()),
+                        ['id' => $entry->getId()]
+                    );
+                    $cachedEntries[] = $cacheItem->get();
                 }
-
-                if ($cacheTTL = $this->getCacheTTL()) {
-                    $cacheItem->expiresAfter($cacheTTL);
-                }
-
-                $cache->save($cacheItem->set($entry));
-            } catch (RequestException $exception) {
-                $logger->critical(
-                    sprintf('Element with ID %s could not be loaded.', $id),
-                    ['exception' => $exception, 'id' => $id, 'parser' => get_class($parser)]
-                );
             }
         }
 
-        return $entry;
+        return array_values($cachedEntries);
+    }
+
+    /**
+     * Fetch the entries by the given query
+     *
+     * @param Query $query The query that will be used
+     *
+     * @return ResourceArray|null
+     */
+    private function fetchEntries(Query $query)
+    {
+        $this->logger->debug('Fetch entries from ct directly', ['query' => $query->getQueryString()]);
+
+        $entries = null;
+        try {
+            $entries = $this->client->getEntries($query);
+
+            $this->eventDispatcher->dispatch(ClientEvents::LOAD_CONTENTFUL_ENTRIES, new GenericEvent($entries));
+        } catch (Throwable $e) {
+            $this->logger->critical(
+                'Elements could not be loaded.',
+                ['exception' => $e, 'query' => $query->getQueryString(), 'trace' => $e->getTrace()]
+            );
+        }
+
+        $this->logger->debug('Fetched entries', ['result' => is_object($entries) ? get_class($entries) : 'no_object']);
+
+        return $entries;
     }
 }
