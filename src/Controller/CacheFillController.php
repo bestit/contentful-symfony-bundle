@@ -66,22 +66,21 @@ class CacheFillController implements LoggerAwareInterface
      */
     public function __invoke(Request $request): Response
     {
-
         $response = [
             'success' => false
         ];
         if ($this->isRequestValid($request)) {
-            $entry = json_decode($request->getContent(), true);
-
             try {
-                $entry = $this->client->reviveJson($entry);
+                $entry = $this->client->reviveJson($request->getContent());
 
                 if ($entry instanceof DynamicEntry) {
                     $this->cacheEntryManager->saveEntryInCache($entry);
+                    $response['success'] = true;
                 }
             } catch (Throwable $e) {
                 $this->logger->error('Error at processing webhook', ['exception' => $e]);
                 $response['message'] = $e->getMessage();
+                $response['trace'] = $e->getTrace();
             }
         }
 

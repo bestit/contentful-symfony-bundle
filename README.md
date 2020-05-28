@@ -158,9 +158,9 @@ and configure the webhook with the following table:
 
 | Type  | Event   | URL    | Description                |
 |-------|---------|--------|----------------------------|
-| Entry | create  | /fill  | A entry has been created. The cached entry will be created.   |
-| Entry | publish | /fill  | A entry has been published. The cached entry will be overwriten. |
-| Entry | save    | /fill  | A entry has been saved. The cached entry will be overwriten.     |
+| Entry | create  | /entry  | A entry has been created. The cached entry will be created.   |
+| Entry | publish | /entry  | A entry has been published. The cached entry will be overwriten. |
+| Entry | save    | /entry  | A entry has been saved. The cached entry will be overwriten.     |
 | Entry | delete  | /reset | A entry has been deleted. The cached entry will be deleted.  |
 
 The cache warmer is automatically enabled and should run at every call of the following command:
