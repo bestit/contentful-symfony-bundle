@@ -74,6 +74,13 @@ class ContentfulSlugMatcherTest extends TestCase
     private $slugField;
 
     /**
+     * Is the routing caching enabled?
+     *
+     * @var bool
+     */
+    private $routingCachingEnabled;
+
+    /**
      * Returns the names of the used traits.
      *
      * @return array
@@ -97,7 +104,8 @@ class ContentfulSlugMatcherTest extends TestCase
             $this->slugField = uniqid('', true),
             $this->createMock(ResponseParserInterface::class),
             $this->ignoreCacheParameter = uniqid(),
-            $this->matchingLevel = mt_rand(1, 10)
+            $this->matchingLevel = mt_rand(1, 10),
+            $this->routingCachingEnabled = true
         );
     }
 
@@ -222,7 +230,8 @@ class ContentfulSlugMatcherTest extends TestCase
                 $this->slugField,
                 $this->createMock(ResponseParserInterface::class),
                 $this->ignoreCacheParameter,
-                $this->matchingLevel
+                $this->matchingLevel,
+                $this->routingCachingEnabled
             ])
             ->setMethods(['getCacheTags'])
             ->getMock();
@@ -339,6 +348,19 @@ class ContentfulSlugMatcherTest extends TestCase
             ->method('get')
             ->with($this->ignoreCacheParameter, false)
             ->willReturn('false');
+
+        $this->testMatchRequestSuccess(false, $request);
+    }
+
+    /**
+     * Checks if the request is matched but the cache ignored.
+     *
+     * @return void
+     */
+    public function testMatchRequestSuccessButCacheIsDisabled()
+    {
+        $this->routingCachingEnabled = false;
+        $request = $this->createMock(Request::class);
 
         $this->testMatchRequestSuccess(false, $request);
     }

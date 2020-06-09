@@ -93,6 +93,13 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
     private $routeCollectionResponseParser;
 
     /**
+     * Should the caching for the route entries be disabled and the client caching be used?
+     *
+     * @var bool
+     */
+    private $routingCacheEnabled;
+
+    /**
      * ContentfulSlugMatcher constructor.
      *
      * @param CacheItemPoolInterface $cache
@@ -102,6 +109,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
      * @param ResponseParserInterface $routeCollectionResponseParser The response parser specially for the route coll.
      * @param string $ignoreCacheKey If the value of this parameter is true, then the cache is ignored.
      * @param int $includeLevelForMatching How many levels should be included in contentful if a route machtes?
+     * @param bool $routingCacheEnabled Should the routing entrie sbe cached or should the client caching be used?
      */
     public function __construct(
         CacheItemPoolInterface $cache,
@@ -110,12 +118,14 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
         string $slugField,
         ResponseParserInterface $routeCollectionResponseParser,
         string $ignoreCacheKey = '',
-        int $includeLevelForMatching = 10
+        int $includeLevelForMatching = 10,
+        bool $routingCacheEnabled = true
     ) {
         $this->cache = $cache;
         $this->ignoreCacheKey = $ignoreCacheKey;
         $this->includeLevelForMatching = $includeLevelForMatching;
         $this->routeCollectionResponseParser = $routeCollectionResponseParser;
+        $this->routingCacheEnabled = $routingCacheEnabled;
 
         $this
             ->setClientDecorator($client)
@@ -201,7 +211,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
         $cacheHit = $cache->getItem($this->getRoutingCacheId($requestUri));
         $entry = null;
 
-        if ($this->isCacheIgnored || !$cacheHit->isHit()) {
+        if (!$this->routingCacheEnabled || $this->isCacheIgnored || !$cacheHit->isHit()) {
             foreach ($this->getRoutableTypes() as $routableType) {
                 $entries = $this->clientDecorator->getEntries(function (Query $query) use ($requestUri, $routableType) {
                     $query
@@ -223,7 +233,7 @@ class ContentfulSlugMatcher implements RequestMatcherInterface, UrlGeneratorInte
                 $cacheHit->expiresAfter($cacheTTL);
             }
 
-            if (!$this->isCacheIgnored) {
+            if (!$this->isCacheIgnored && $this->routingCacheEnabled) {
                 if (method_exists($cacheHit, 'tag')) {
                     $cacheHit->tag($this->getCacheTags($entry));
                 }
