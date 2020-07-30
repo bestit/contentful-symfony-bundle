@@ -7,6 +7,7 @@ namespace BestIt\ContentfulBundle\Controller;
 use BestIt\ContentfulBundle\Service\Cache\CacheEntryManager;
 use Contentful\Delivery\Client;
 use Contentful\Delivery\DynamicEntry;
+use Contentful\Delivery\Query;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\NullLogger;
@@ -75,8 +76,10 @@ class CacheFillController implements LoggerAwareInterface
 
                 if ($entry instanceof DynamicEntry) {
                     $this->cacheEntryManager->saveEntryInCache($entry);
+                    $this->updateLinkedEntries($entry);
                     $response['success'] = true;
                 }
+
             } catch (Throwable $e) {
                 $this->logger->error('Error at processing webhook', ['exception' => $e]);
                 $response['message'] = $e->getMessage();
@@ -108,5 +111,22 @@ class CacheFillController implements LoggerAwareInterface
         }
 
         return $valid;
+    }
+
+    /**
+     * Update the linked entries of a changed entry
+     *
+     * @param DynamicEntry $entry
+     *
+     * @return void
+     */
+    private function updateLinkedEntries(DynamicEntry $entry):void
+    {
+        $query = (new Query())->linksToEntry($entry->getId());
+        $entries = $this->client->getEntries($query);
+
+        foreach ($entries as $entry) {
+            $this->cacheEntryManager->saveEntryInCache($entry);
+        }
     }
 }
